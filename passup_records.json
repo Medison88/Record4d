@@ -1,0 +1,110 @@
+[
+    {
+        "id": 1,
+        "date": "2026-10-28",
+        "terminal": "Terminal 4",
+        "pay_dollar": 109.0,
+        "pay_q": 4.0,
+        "unpaid": 0.0,
+        "cash": 1891.0,
+        "epay": 0.0,
+        "total": 2000.0,
+        "note": "No Record"
+    },
+    {
+        "id": 2,
+        "date": "2026-10-28",
+        "terminal": "Terminal 3",
+        "pay_dollar": 753.0,
+        "pay_q": 4.0,
+        "unpaid": 0.0,
+        "cash": 1447.0,
+        "epay": 0.0,
+        "total": 2200.0,
+        "note": "No Record"
+    },
+    {
+        "id": 3,
+        "date": "2026-10-28",
+        "terminal": "Terminal 1",
+        "pay_dollar": 983.0,
+        "pay_q": 5.0,
+        "unpaid": 0.0,
+        "cash": 517.0,
+        "epay": 0.0,
+        "total": 1500.0,
+        "note": "No Record"
+    },
+    {
+        "id": 4,
+        "date": "2026-10-28",
+        "terminal": "Terminal 4",
+        "pay_dollar": 5.0,
+        "pay_q": 1.0,
+        "unpaid": 0.0,
+        "cash": 1495.0,
+        "epay": 0.0,
+        "total": 1500.0,
+        "note": "No Record"
+    },
+    {
+        "id": 5,
+        "date": "2026-10-28",
+        "terminal": "Terminal 3",
+        "pay_dollar": 363.0,
+        "pay_q": 15.0,
+        "unpaid": 0.0,
+        "cash": 2037.0,
+        "epay": 0.0,
+        "total": 2400.0,
+        "note": "No Record"
+    },
+    {
+        "id": 6,
+        "date": "2026-10-28",
+        "terminal": "Terminal 4",
+        "pay_dollar": 107.0,
+        "pay_q": 4.0,
+        "unpaid": 0.0,
+        "cash": 1293.0,
+        "epay": 0.0,
+        "total": 1400.0,
+        "note": "No Record"
+    },
+    {
+        "id": 7,
+        "date": "2026-10-28",
+        "terminal": "Terminal 1",
+        "pay_dollar": 193.0,
+        "pay_q": 12.0,
+        "unpaid": 0.0,
+        "cash": 1007.0,
+        "epay": 0.0,
+        "total": 1200.0,
+        "note": "No Record"
+    },
+    {
+        "id": 8,
+        "date": "2026-10-28",
+        "terminal": "Terminal 2",
+        "pay_dollar": 2537.0,
+        "pay_q": 3.0,
+        "unpaid": 0.0,
+        "cash": 0.0,
+        "epay": 0.0,
+        "total": 2537.0,
+        "note": "No Record"
+    },
+    {
+        "id": 9,
+        "date": "2026-10-28",
+        "terminal": "Terminal 3",
+        "pay_dollar": 170.0,
+        "pay_q": 4.0,
+        "unpaid": 0.0,
+        "cash": 2030.0,
+        "epay": 0.0,
+        "total": 2200.0,
+        "note": "No Record"
+    }
+]
