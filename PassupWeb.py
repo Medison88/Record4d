@@ -179,7 +179,7 @@ if filtered_records:
 
   st.dataframe(df, use_container_width=True, hide_index=True)
 
-  # 3. 底部总计栏 (Summary)
+  # 3. 顶部总计栏 (Summary)
   st.markdown("### 📊 Daily Summary (Overall)")
   sum_dollar = sum(r["pay_dollar"] for r in filtered_records)
   sum_q = sum(r["pay_q"] for r in filtered_records)
@@ -226,8 +226,8 @@ if filtered_records:
         unsafe_allow_html=True,
     )
 
-  # 3.1 新增：各个 Terminal 个别数额汇总表格
-  st.markdown("### 🏷️ Breakdown by Terminal (Today)")
+  # 3.1 终端明细表格 + Grand Total
+  st.markdown("### 🏷️ Breakdown by Terminal & Grand Total")
   terminals_list = ["Terminal 1", "Terminal 2", "Terminal 3", "Terminal 4"]
   term_summary_data = []
 
@@ -249,6 +249,17 @@ if filtered_records:
         "E-Pay": f"{t_epay:.2f}",
         "Total": f"{t_total:.2f}",
     })
+
+  # 追加 Grand Total 行
+  term_summary_data.append({
+      "Terminal": "Grand Total",
+      "Pay ($)": f"{sum_dollar:.2f}",
+      "Pay (Q)": f"{sum_q:.2f}",
+      "Unpaid": f"{sum_unpaid:.2f}",
+      "Cash": f"{sum_cash:.2f}",
+      "E-Pay": f"{sum_epay:.2f}",
+      "Total": f"{sum_total:.2f}",
+  })
 
   df_term_summary = pd.DataFrame(term_summary_data)
   st.dataframe(df_term_summary, use_container_width=True, hide_index=True)
