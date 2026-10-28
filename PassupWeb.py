@@ -179,8 +179,8 @@ if filtered_records:
 
   st.dataframe(df, use_container_width=True, hide_index=True)
 
-  # 3. 底部总计栏 (Summary) - 改用 Markdown 避免数字过长被省略号截断
-  st.markdown("### 📊 Daily Summary")
+  # 3. 底部总计栏 (Summary)
+  st.markdown("### 📊 Daily Summary (Overall)")
   sum_dollar = sum(r["pay_dollar"] for r in filtered_records)
   sum_q = sum(r["pay_q"] for r in filtered_records)
   sum_unpaid = sum(r["unpaid"] for r in filtered_records)
@@ -225,6 +225,33 @@ if filtered_records:
         f" style='margin:0;font-size:16px;font-weight:bold;color:#007aff;'>{sum_total:.2f}</p>",
         unsafe_allow_html=True,
     )
+
+  # 3.1 新增：各个 Terminal 个别数额汇总表格
+  st.markdown("### 🏷️ Breakdown by Terminal (Today)")
+  terminals_list = ["Terminal 1", "Terminal 2", "Terminal 3", "Terminal 4"]
+  term_summary_data = []
+
+  for t in terminals_list:
+    t_records = [r for r in filtered_records if r.get("terminal") == t]
+    t_dollar = sum(r["pay_dollar"] for r in t_records)
+    t_q = sum(r["pay_q"] for r in t_records)
+    t_unpaid = sum(r["unpaid"] for r in t_records)
+    t_cash = sum(r["cash"] for r in t_records)
+    t_epay = sum(r["epay"] for r in t_records)
+    t_total = sum(r["total"] for r in t_records)
+
+    term_summary_data.append({
+        "Terminal": t,
+        "Pay ($)": f"{t_dollar:.2f}",
+        "Pay (Q)": f"{t_q:.2f}",
+        "Unpaid": f"{t_unpaid:.2f}",
+        "Cash": f"{t_cash:.2f}",
+        "E-Pay": f"{t_epay:.2f}",
+        "Total": f"{t_total:.2f}",
+    })
+
+  df_term_summary = pd.DataFrame(term_summary_data)
+  st.dataframe(df_term_summary, use_container_width=True, hide_index=True)
 
   st.divider()
 
