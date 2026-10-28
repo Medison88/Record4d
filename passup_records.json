@@ -1,0 +1,14 @@
+[
+    {
+        "id": 1,
+        "date": "2026-10-28",
+        "terminal": "Terminal 4",
+        "pay_dollar": 109.0,
+        "pay_q": 0.0,
+        "unpaid": 0.0,
+        "cash": 1891.0,
+        "epay": 0.0,
+        "total": 2000.0,
+        "note": "No Record"
+    }
+]
