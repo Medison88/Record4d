@@ -48,7 +48,7 @@ form_title = (
     if editing_record
     else "➕ Add New Passup Record"
 )
-with st.form("passup_form", clear_submit_after=False):
+with st.form("passup_form", clear_on_submit=False):
   st.subheader(form_title)
 
   col1, col2 = st.columns(2)
