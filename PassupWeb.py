@@ -179,7 +179,7 @@ if filtered_records:
 
   st.dataframe(df, use_container_width=True, hide_index=True)
 
-  # 3. 底部总计栏 (Summary)
+  # 3. 底部总计栏 (Summary) - 改用 Markdown 避免数字过长被省略号截断
   st.markdown("### 📊 Daily Summary")
   sum_dollar = sum(r["pay_dollar"] for r in filtered_records)
   sum_q = sum(r["pay_q"] for r in filtered_records)
@@ -189,12 +189,42 @@ if filtered_records:
   sum_total = sum(r["total"] for r in filtered_records)
 
   sc1, sc2, sc3, sc4, sc5, sc6 = st.columns(6)
-  sc1.metric("Pay ($)", f"{sum_dollar:.2f}")
-  sc2.metric("Pay (Q)", f"{sum_q:.2f}")
-  sc3.metric("Unpaid", f"{sum_unpaid:.2f}")
-  sc4.metric("Cash", f"{sum_cash:.2f}")
-  sc5.metric("E-Pay", f"{sum_epay:.2f}")
-  sc6.metric("Total", f"{sum_total:.2f}")
+  with sc1:
+    st.markdown(
+        f"<p style='margin:0;font-size:12px;color:gray;'>Pay ($)</p><p"
+        f" style='margin:0;font-size:16px;font-weight:bold;'>{sum_dollar:.2f}</p>",
+        unsafe_allow_html=True,
+    )
+  with sc2:
+    st.markdown(
+        f"<p style='margin:0;font-size:12px;color:gray;'>Pay (Q)</p><p"
+        f" style='margin:0;font-size:16px;font-weight:bold;'>{sum_q:.2f}</p>",
+        unsafe_allow_html=True,
+    )
+  with sc3:
+    st.markdown(
+        f"<p style='margin:0;font-size:12px;color:gray;'>Unpaid</p><p"
+        f" style='margin:0;font-size:16px;font-weight:bold;'>{sum_unpaid:.2f}</p>",
+        unsafe_allow_html=True,
+    )
+  with sc4:
+    st.markdown(
+        f"<p style='margin:0;font-size:12px;color:gray;'>Cash</p><p"
+        f" style='margin:0;font-size:16px;font-weight:bold;'>{sum_cash:.2f}</p>",
+        unsafe_allow_html=True,
+    )
+  with sc5:
+    st.markdown(
+        f"<p style='margin:0;font-size:12px;color:gray;'>E-Pay</p><p"
+        f" style='margin:0;font-size:16px;font-weight:bold;'>{sum_epay:.2f}</p>",
+        unsafe_allow_html=True,
+    )
+  with sc6:
+    st.markdown(
+        f"<p style='margin:0;font-size:12px;color:gray;'>Total</p><p"
+        f" style='margin:0;font-size:16px;font-weight:bold;color:#007aff;'>{sum_total:.2f}</p>",
+        unsafe_allow_html=True,
+    )
 
   st.divider()
 
