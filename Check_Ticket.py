@@ -49,7 +49,7 @@ tab_input, tab_search = st.tabs(
     ["📝 Ticket Input (录入窗口)", "🔍 Search & History (搜索窗口)"]
 )
 
-# ==================== TAB 1: 录入与修改窗口 ====================
+# ==================== TAB 1: 录入窗口（含保存、修改、删除管理） ====================
 with tab_input:
   form_title = (
       f"✏️ Edit Record (ID: {st.session_state.edit_id})"
@@ -242,6 +242,41 @@ with tab_input:
       st.session_state.edit_id = None
       st.rerun()
 
+  st.divider()
+
+  # 管理区（放在录入窗口下方）
+  st.subheader("⚙️ Manage Records (Edit / Delete)")
+  if records:
+    record_options = {
+        f"ID {r['id']} | Date: {r['date']} | Draw: {r['draw']} | Num: {r['number']} ({r.get('prize_type', '')})": (
+            r["id"]
+        )
+        for r in records
+    }
+    selected_option = st.selectbox(
+        "Select a record to Edit or Delete", options=list(record_options.keys())
+    )
+
+    if selected_option:
+      target_id = record_options[selected_option]
+      col_edit, col_del = st.columns(2)
+      with col_edit:
+        if st.button("✏️ Edit This Record"):
+          st.session_state.edit_id = target_id
+          st.rerun()
+      with col_del:
+        if st.button("🗑️ Delete This Record", type="primary"):
+          records = [r for r in records if r["id"] != target_id]
+          for idx, r in enumerate(records, start=1):
+            r["id"] = idx
+          save_data(records)
+          if st.session_state.edit_id == target_id:
+            st.session_state.edit_id = None
+          st.success("删除成功！")
+          st.rerun()
+  else:
+    st.write("暂无任何记录可供管理。")
+
 # ==================== TAB 2: Search 搜索窗口 ====================
 with tab_search:
   st.subheader("🔍 Search & History Window")
@@ -295,36 +330,3 @@ with tab_search:
     st.dataframe(df, use_container_width=True, hide_index=True)
   else:
     st.info("暂无匹配的记录。")
-
-  # 管理区（支持修改与删除）
-  with st.expander("⚙️ Manage Records (Edit / Delete)"):
-    if records:
-      record_options = {
-          f"ID {r['id']} | Date: {r['date']} | Draw: {r['draw']} | Num: {r['number']} ({r.get('prize_type', '')})": (
-              r["id"]
-          )
-          for r in records
-      }
-      selected_option = st.selectbox(
-          "Select a record to Edit or Delete", options=list(record_options.keys())
-      )
-
-      if selected_option:
-        target_id = record_options[selected_option]
-        col_edit, col_del = st.columns(2)
-        with col_edit:
-          if st.button("✏️ Edit This Record"):
-            st.session_state.edit_id = target_id
-            st.rerun()
-        with col_del:
-          if st.button("🗑️ Delete This Record", type="primary"):
-            records = [r for r in records if r["id"] != target_id]
-            for idx, r in enumerate(records, start=1):
-              r["id"] = idx
-            save_data(records)
-            if st.session_state.edit_id == target_id:
-              st.session_state.edit_id = None
-            st.success("删除成功！")
-            st.rerun()
-    else:
-      st.write("暂无任何记录。")
