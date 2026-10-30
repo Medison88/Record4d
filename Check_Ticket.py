@@ -17,21 +17,17 @@ SPREADSHEET_ID = "1j9R36vCXpSNPuQ8UuQU_k5gZm9xRPcIJ7RbN1hQrLq4"
 @st.cache_resource
 def init_gspread():
   if "gcp_service_account" in st.secrets:
-    # 强制转为标准字典
     creds_dict = dict(st.secrets["gcp_service_account"])
-
-    # 深度清洗私钥：把各种可能出错的换行符格式统一转为标准的 \n
     if "private_key" in creds_dict:
       pk = str(creds_dict["private_key"])
-      # 如果包含字面量的 \\n 或 \n，将其规范化
-      pk = pk.replace("\\\\n", "\n").replace("\\n", "\n")
+      # 如果含有字面量的 \n，将其规范化转为真实换行
+      if "\\n" in pk:
+        pk = pk.replace("\\n", "\n")
       creds_dict["private_key"] = pk
-
     gc = gspread.service_account_from_dict(creds_dict)
   else:
     gc = gspread.service_account(filename="credentials.json")
   return gc
-
 
 gc = init_gspread()
 try:
