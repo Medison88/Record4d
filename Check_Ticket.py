@@ -80,7 +80,7 @@ def load_data():
 
 def save_data(records):
   try:
-    sheet_4d.clear()
+    sheet.clear()
     headers = [
         "id",
         "date",
@@ -93,7 +93,7 @@ def save_data(records):
         "score",
         "percentage",
     ]
-    sheet_4d.append_row(headers)
+    sheet.append_row(headers)
     for r in records:
       row = [
           r.get("id"),
@@ -107,7 +107,7 @@ def save_data(records):
           r.get("score", 0),
           r.get("percentage", "0.00%"),
       ]
-      sheet_4d.append_row(row)
+      sheet.append_row(row)
     return True
   except Exception as e:
     st.error(f"保存到 Google Sheets 失败: {e}")
