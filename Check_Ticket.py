@@ -1,4 +1,3 @@
-import base64
 from datetime import datetime
 import json
 import os
@@ -19,44 +18,103 @@ SPREADSHEET_ID = "1j9R36vCXpSNPuQ8UuQU_k5gZm9xRPcIJ7RbN1hQrLq4"
 
 @st.cache_resource
 def init_gspread():
-  if "gcp_service_account" in st.secrets:
-    creds_json = st.secrets["gcp_service_account"]
-    if isinstance(creds_json, str):
-      creds_dict = json.loads(creds_json)
-    else:
-      creds_dict = dict(creds_json)
-    gc = gspread.service_account_from_dict(creds_dict)
-  else:
-    gc = gspread.service_account(filename="credentials.json")
-  return gc.open_by_key(SPREADSHEET_ID).sheet1
+  try:
+    if "gcp_service_account" in st.secrets:
+      creds_dict = dict(st.secrets["gcp_service_account"])
 
+      if "private_key" in creds_dict:
+        raw_key = str(creds_dict["private_key"])
+        # 【终极私钥清洗与重组】提取核心 Base64，清除所有非法空格、换行和错位的 `=`
+        match = re.search(
+            r"-----BEGIN PRIVATE KEY-----(.*?)-----END PRIVATE KEY-----",
+            raw_key,
+            re.DOTALL,
+        )
+        if match:
+          base64_data = match.group(1)
+          # 仅保留合法的 Base64 字符
+          base64_clean = re.sub(r"[^A-Za-z0-9+/=]", "", base64_data)
+          # 每 64 个字符重新规范换行
+          chunks = [
+              base64_clean[i : i + 64] for i in range(0, len(base64_clean), 64)
+          ]
+          creds_dict["private_key"] = (
+              "-----BEGIN PRIVATE KEY-----\n"
+              + "\n".join(chunks)
+              + "\n-----END PRIVATE KEY-----"
+          )
+        else:
+          creds_dict["private_key"] = raw_key.replace("\\n", "\n").strip()
+    else:
+      st.error(
+          "ERROR: 未在 Streamlit Secrets 中找到 gcp_service_account 配置！"
+      )
+      return None
+
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+    ]
+    credentials = service_account.Credentials.from_service_account_info(
+        creds_dict, scopes=scopes
+    )
+    gc = gspread.authorize(credentials)
+    return gc
+  except Exception as e:
+    import traceback
+
+    st.error(f"详细初始化错误: {type(e).__name__}: {e}")
+    st.code(traceback.format_exc())
+    st.stop()
+
+
+gc = init_gspread()
+if gc is None:
+  st.stop()
 
 try:
-  sheet = init_gspread()
+  sheet_4d = gc.open_by_key(SPREADSHEET_ID).sheet1
 except Exception as e:
   st.error(f"连接 Google Sheets 失败: {e}")
   st.stop()
 
 
-# ==================== 云端数据读写函数 ====================
+# ==================== 云端数据读写函数（适配无表头表格） ====================
 def load_data():
   try:
-    records = sheet_4d.get_all_records()
-    for r in records:
-      r["id"] = int(r.get("id", 0)) if r.get("id") else 0
-      r["draw"] = str(r.get("draw", ""))
-      r["number"] = str(r.get("number", ""))
-      r["score"] = int(r.get("score", 0)) if r.get("score") else 0
-      bcn_raw = r.get("bcn_list", '["","","","","","","","",""]')
-      if isinstance(bcn_raw, str) and bcn_raw.startswith("["):
+    rows = sheet_4d.get_all_values()
+    records = []
+    if not rows:
+      return []
+
+    for r_idx, row in enumerate(rows):
+      if not row or not row[0]:
+        continue
+      # 尝试解析第一列为 ID（判断是否为数据行）
+      try:
+        rid = int(row[0])
+        bcn_raw = row[5] if len(row) > 5 else "[]"
         try:
-          r["bcn_list"] = json.loads(bcn_raw)
+          bcn_list = json.loads(bcn_raw) if bcn_raw.startswith("[") else [""] * 9
         except:
-          r["bcn_list"] = [""] * 9
-      elif isinstance(bcn_raw, list):
-        r["bcn_list"] = bcn_raw
-      else:
-        r["bcn_list"] = [""] * 9
+          bcn_list = [""] * 9
+
+        record = {
+            "id": rid,
+            "date": row[1] if len(row) > 1 else "",
+            "draw": row[2] if len(row) > 2 else "",
+            "number": row[3] if len(row) > 3 else "",
+            "prize_type": row[4] if len(row) > 4 else "",
+            "bcn_list": bcn_list,
+            "serial": row[6] if len(row) > 6 else "",
+            "combine": row[7] if len(row) > 7 else "",
+            "score": int(row[8]) if len(row) > 8 and str(row[8]).isdigit() else 0,
+            "percentage": row[9] if len(row) > 9 else "0.00%",
+        }
+        records.append(record)
+      except ValueError:
+        # 跳过可能的表头行
+        continue
     return records
   except Exception as e:
     st.error(f"读取 Google Sheets 数据失败: {e}")
