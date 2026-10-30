@@ -99,7 +99,7 @@ with st.form("ticket_form", clear_on_submit=True):
 
       percentage = (total_score / total_len * 100) if total_len > 0 else 0.0
 
-      # 3. 保存记录 (不单独存放流水号字段到显示表格)
+      # 3. 保存记录
       new_record = {
           "id": len(records) + 1,
           "date": date_str,
@@ -135,7 +135,7 @@ st.subheader("🔍 Search")
 search_query = st.text_input(
     "Search by Number, BCN or Combine string",
     value="",
-    placeholder="输入号码或 BCN 搜索...",
+    placeholder="输入号码搜索...",
 )
 
 filtered_records = records
@@ -159,7 +159,7 @@ if filtered_records:
         "Number": r["number"],
         "Score": r.get("score", 0),  # 得分
         "Percentage": r.get("percentage", "0.00%"),  # 真实占比
-        "BCN": r["combine"],  # 显示 Combine 字符串
+        # 表格中已移除 BCN / Combine 列
     })
 
   df = pd.DataFrame(table_data)
