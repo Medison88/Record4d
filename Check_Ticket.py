@@ -10,7 +10,7 @@ st.set_page_config(
     page_title="Ticket Purchase & 4D Analysis", page_icon="🎟️", layout="centered"
 )
 
-# ==================== Google Sheets 云端数据库配置 ====================
+# ==================== Google Sheets 云端数据库配置 (Calculate_Ticket_DB) ====================
 SPREADSHEET_ID = "1j9R36vCXpSNPuQ8UuQU_k5gZm9xRPcIJ7RbN1hQrLq4"
 
 
@@ -46,7 +46,6 @@ def load_data():
       r["draw"] = str(r.get("draw", ""))
       r["number"] = str(r.get("number", ""))
       r["score"] = int(r.get("score", 0)) if r.get("score") else 0
-      # 解析可能存在的 JSON 格式 BCN 列表
       bcn_raw = r.get("bcn_list", '["","","","","","","","",""]')
       if isinstance(bcn_raw, str) and bcn_raw.startswith("["):
         try:
@@ -132,7 +131,7 @@ with tab_input:
   def_date = (
       datetime.strptime(editing_record["date"], "%d/%m/%Y").date()
       if editing_record and editing_record.get("date")
-      else None
+      else datetime.now().date()
   )
   def_draw = editing_record["draw"] if editing_record else ""
   def_num = editing_record["number"] if editing_record else ""
@@ -360,25 +359,3 @@ with tab_search:
     ]
 
   if filter_num.strip():
-    fn = filter_num.strip()
-    filtered_records = [
-        r for r in filtered_records if fn in str(r.get("number", ""))
-    ]
-
-  if filtered_records:
-    table_data = []
-    for r in filtered_records:
-      table_data.append({
-          "ID": r["id"],
-          "Date": r["date"],
-          "Draw": r["draw"],
-          "Number": r["number"],
-          "Prize": r.get("prize_type", "-"),
-          "Score": r.get("score", 0),
-          "Percentage": r.get("percentage", "0.00%"),
-      })
-
-    df = pd.DataFrame(table_data)
-    st.dataframe(df, use_container_width=True, hide_index=True)
-  else:
-    st.info("暂无匹配的记录。")
