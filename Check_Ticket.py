@@ -20,31 +20,18 @@ SPREADSHEET_ID = "1j9R36vCXpSNPuQ8UuQU_k5gZm9xRPcIJ7RbN1hQrLq4"
 def init_gspread():
   try:
     if "gcp_service_account" in st.secrets:
+      # 将 Streamlit 的 Secrets 转为标准字典
       creds_dict = dict(st.secrets["gcp_service_account"])
 
+      # 核心修复：清洗私钥中的隐藏回车符和换行错位
       if "private_key" in creds_dict:
-        raw_key = str(creds_dict["private_key"])
-        # 【终极私钥清洗与重组】提取核心 Base64，清除所有非法空格、换行和错位的 `=`
-        match = re.search(
-            r"-----BEGIN PRIVATE KEY-----(.*?)-----END PRIVATE KEY-----",
-            raw_key,
-            re.DOTALL,
-        )
-        if match:
-          base64_data = match.group(1)
-          # 仅保留合法的 Base64 字符
-          base64_clean = re.sub(r"[^A-Za-z0-9+/=]", "", base64_data)
-          # 每 64 个字符重新规范换行
-          chunks = [
-              base64_clean[i : i + 64] for i in range(0, len(base64_clean), 64)
-          ]
-          creds_dict["private_key"] = (
-              "-----BEGIN PRIVATE KEY-----\n"
-              + "\n".join(chunks)
-              + "\n-----END PRIVATE KEY-----"
-          )
-        else:
-          creds_dict["private_key"] = raw_key.replace("\\n", "\n").strip()
+        pk = str(creds_dict["private_key"])
+        # 统一清除 Windows 的 \r 符号，避免 Base64 偏移报错
+        pk = pk.replace("\r\n", "\n").replace("\r", "\n")
+        # 确保字面量的 \n 也能正确转为真实换行
+        if "\\n" in pk:
+          pk = pk.replace("\\n", "\n")
+        creds_dict["private_key"] = pk
     else:
       st.error(
           "ERROR: 未在 Streamlit Secrets 中找到 gcp_service_account 配置！"
