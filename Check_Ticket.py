@@ -8,7 +8,7 @@ DATA_FILE = "ticket_records.json"
 
 # 页面配置
 st.set_page_config(
-    page_title="Ticket Purchase & Calculator", page_icon="🎟️", layout="centered"
+    page_title="Ticket Purchase & Record App", page_icon="🎟️", layout="centered"
 )
 
 
@@ -31,27 +31,19 @@ def save_data(records):
 
 records = load_data()
 
-st.title("🎟️ Ticket Purchase & Red Word Calculator")
+st.title("🎟️ Ticket Purchase & Record System")
 
-# ==================== 1. 统一的输入表单区（无默认值） ====================
+# ==================== 1. 输入表单区（无默认值） ====================
 with st.form("ticket_form", clear_on_submit=True):
-  st.subheader("Ticket Purchase & Red Word Analysis")
+  st.subheader("Ticket Purchase")
 
   col1, col2 = st.columns(2)
   with col1:
     date_val = st.date_input("Date", value=None)
   with col2:
-    draw_val = st.text_input("Draw", value="", placeholder="例如: 442/26")
+    draw_val = st.text_input("Draw", value="", placeholder="例如: 442/26 或 442")
 
-  number_val = st.text_input("Number (4 digits)", value="", placeholder="例如: 7338")
-
-  # 长红字串输入框（无默认值）
-  red_word_input = st.text_area(
-      "当期的长红字串 (Red Word / Password String):",
-      value="",
-      height=80,
-      placeholder="请在此处粘贴当期长红字串...",
-  )
+  number_val = st.text_input("Number (4 digits)", value="", placeholder="例如: 2014")
 
   st.markdown("**BCN Numbers (Multi-groups):**")
   bcn_col1, bcn_col2, bcn_col3, bcn_col4, bcn_col5 = st.columns(5)
@@ -86,7 +78,7 @@ with st.form("ticket_form", clear_on_submit=True):
     else:
       date_str = date_val.strftime("%d/%m/%Y")
 
-      # 动态计算 Combine
+      # 自动组合 Combine：所有 BCN 拼接 + Serial + Draw（如 442/26 或 442 自动截取斜杠前或直接取数字）
       draw_cleaned = draw_val.split("/")[0] if "/" in draw_val else draw_val
       bcn_combined = "".join(
           [bcn1, bcn2, bcn3, bcn4, bcn5, bcn6, bcn7, bcn8, bcn9]
@@ -95,16 +87,6 @@ with st.form("ticket_form", clear_on_submit=True):
       combine_result = (
           f"{bcn_combined_clean}{serial_val.strip()}{draw_cleaned.strip()}"
       )
-
-      # 动态计算红字得分与 Percentage
-      clean_red = "".join(red_word_input.split())
-      total_len = len(clean_red)
-      total_score = 0
-      for digit in number_val:
-        if digit.isdigit():
-          total_score += clean_red.count(digit)
-
-      percentage = (total_score / total_len * 100) if total_len > 0 else 0.0
 
       new_record = {
           "id": len(records) + 1,
@@ -124,25 +106,21 @@ with st.form("ticket_form", clear_on_submit=True):
           ],
           "serial": serial_val,
           "combine": combine_result,
-          "total_score": total_score,
-          "percentage": f"{percentage:.2f}%",
       }
       records.append(new_record)
       save_data(records)
-      st.success(
-          f"保存成功！总得分: {total_score} | 中奖占比: {percentage:.2f}%"
-      )
+      st.success("记录保存成功！")
       st.rerun()
 
 st.divider()
 
 # ==================== 2. Search 搜索与历史表格区 ====================
-st.subheader("🔍 Search Records")
+st.subheader("🔍 Search")
 
 search_query = st.text_input(
     "Search by Number, BCN or Combine string",
     value="",
-    placeholder="输入号码或关键词进行搜索...",
+    placeholder="输入号码、BCN或Combine进行搜索...",
 )
 
 filtered_records = records
@@ -165,9 +143,7 @@ if filtered_records:
         "Date": r["date"],
         "Draw": r["draw"],
         "Number": r["number"],
-        "Score": r.get("total_score", "-"),
-        "Percentage": r.get("percentage", "-"),
-        "BCN": r["combine"],
+        "BCN": r["combine"],  # BCN 列对应显示 Combine 字符串
     })
 
   df = pd.DataFrame(table_data)
