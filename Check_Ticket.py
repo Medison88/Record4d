@@ -44,7 +44,7 @@ if st.session_state.edit_id is not None:
       (r for r in records if r["id"] == st.session_state.edit_id), None
   )
 
-# ==================== 1. 输入表单区（支持新增与修改） ====================
+# ==================== 1. 输入表单区（保留 Serial） ====================
 form_title = (
     f"✏️ Edit Record (ID: {st.session_state.edit_id})"
     if editing_record
@@ -120,7 +120,7 @@ with st.form("ticket_form", clear_on_submit=False):
     else:
       date_str = date_val.strftime("%d/%m/%Y")
 
-      # 1. 拼接 Combine 字符串
+      # 1. 拼接 Combine 字符串 (参与计算与存储)
       draw_cleaned = draw_val.split("/")[0] if "/" in draw_val else draw_val
       bcn_combined = "".join(
           [bcn1, bcn2, bcn3, bcn4, bcn5, bcn6, bcn7, bcn8, bcn9]
@@ -203,7 +203,7 @@ if st.session_state.edit_id is not None:
 
 st.divider()
 
-# ==================== 2. Search 搜索与历史表格区 ====================
+# ==================== 2. Search 搜索与历史表格区（隐藏 Serial 列） ====================
 st.subheader("🔍 Search & History")
 
 search_query = st.text_input(
@@ -234,6 +234,7 @@ if filtered_records:
         "Number": r["number"],
         "Score": r.get("score", 0),
         "Percentage": r.get("percentage", "0.00%"),
+        # 表格中已隐藏 Serial 列
     })
 
   df = pd.DataFrame(table_data)
