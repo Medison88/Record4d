@@ -1,6 +1,8 @@
+import base64
 from datetime import datetime
 import json
 import os
+import re
 import gspread
 import pandas as pd
 import streamlit as st
@@ -20,10 +22,30 @@ def init_gspread():
   try:
     if "gcp_service_account" in st.secrets:
       creds_dict = dict(st.secrets["gcp_service_account"])
+
       if "private_key" in creds_dict:
-        creds_dict["private_key"] = str(creds_dict["private_key"]).replace(
-            "\\n", "\n"
+        raw_key = str(creds_dict["private_key"])
+
+        # 【核心强力清洗】提取私钥中的 Base64 主体，彻底清除所有错位的换行、空格和非法字符
+        match = re.search(
+            r"-----BEGIN PRIVATE KEY-----(.*?)-----END PRIVATE KEY-----",
+            raw_key,
+            re.DOTALL,
         )
+        if match:
+          b64_content = match.group(1)
+          # 只保留合法的 Base64 字符（大小写字母、数字、+、/、=）
+          b64_clean = re.sub(r"[^A-Za-z0-9+/=]", "", b64_content)
+          # 每 64 个字符标准换行一次，重新组装成完美的 PEM 格式
+          chunks = [b64_clean[i : i + 64] for i in range(0, len(b64_clean), 64)]
+          creds_dict["private_key"] = (
+              "-----BEGIN PRIVATE KEY-----\n"
+              + "\n".join(chunks)
+              + "\n-----END PRIVATE KEY-----\n"
+          )
+        else:
+          # 兜底：如果没匹配到标记，直接做基础换行替换
+          creds_dict["private_key"] = raw_key.replace("\\n", "\n").strip()
     else:
       st.error(
           "ERROR: 未在 Streamlit Secrets 中找到 gcp_service_account 配置！"
