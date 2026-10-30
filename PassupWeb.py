@@ -297,7 +297,7 @@ if filtered_records:
 
   st.divider()
 
-  # ==================== 4. 修改与删除管理操作（已移至保存按钮上方） ====================
+  # ==================== 4. 修改与删除管理操作（放在Note下方、Save按钮上方） ====================
   st.subheader("⚙️ Manage Selected Date Records")
   record_options = {
       f"ID {r['id']} | {r['terminal']} | Total: {r['total']}": r["id"]
@@ -311,12 +311,12 @@ if filtered_records:
     target_id = record_options[selected_option]
     col_edit, col_del = st.columns(2)
     with col_edit:
-      if st.button("✏️ Edit This Record"):
+      if st.button("✏️ Edit This Record", use_container_width=True):
         st.session_state.edit_id = target_id
         st.session_state.form_version += 1
         st.rerun()
     with col_del:
-      if st.button("🗑️ Delete This Record", type="primary"):
+      if st.button("🗑️ Delete This Record", type="primary", use_container_width=True):
         records = [r for r in records if r["id"] != target_id]
         for idx, r in enumerate(records, start=1):
           r["id"] = idx
@@ -330,8 +330,10 @@ else:
 
 st.divider()
 
-# ==================== 5. 提交 / 保存按钮区域 ====================
-submitted = st.button("💾 Save / Update Record", type="primary")
+# ==================== 5. 底部 Save / Update 按钮 ====================
+submitted = st.button(
+    "💾 Save / Update Record", type="primary", use_container_width=True
+)
 
 if submitted:
   total = pay_dollar + unpaid + cash + epay
@@ -373,7 +375,7 @@ if submitted:
   st.rerun()
 
 if st.session_state.edit_id is not None:
-  if st.button("❌ Cancel Edit"):
+  if st.button("❌ Cancel Edit", use_container_width=True):
     st.session_state.edit_id = None
     st.session_state.form_version += 1
     st.rerun()
