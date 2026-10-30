@@ -44,7 +44,7 @@ if st.session_state.edit_id is not None:
       (r for r in records if r["id"] == st.session_state.edit_id), None
   )
 
-# ==================== 1. 输入表单区（修复了 Serial 回填） ====================
+# ==================== 1. 输入表单区 ====================
 form_title = (
     f"✏️ Edit Record (ID: {st.session_state.edit_id})"
     if editing_record
@@ -60,6 +60,15 @@ def_date = (
 )
 def_draw = editing_record["draw"] if editing_record else ""
 def_num = editing_record["number"] if editing_record else ""
+
+# 奖项类型选项
+prize_options = ["First", "Second", "Third", "Special", "Consolation"]
+def_prize = (
+    editing_record["prize_type"]
+    if editing_record and editing_record.get("prize_type") in prize_options
+    else prize_options[0]
+)
+
 def_bcns = (
     editing_record["bcn_list"]
     if editing_record and "bcn_list" in editing_record
@@ -78,6 +87,13 @@ with st.form("ticket_form", clear_on_submit=False):
 
   number_val = st.text_input(
       "Number (4 digits)", value=def_num, placeholder="例如: 7338"
+  )
+
+  # 新增的奖项下拉菜单
+  prize_type = st.selectbox(
+      "Prize Type",
+      options=prize_options,
+      index=prize_options.index(def_prize),
   )
 
   st.markdown("**BCN Numbers (Multi-groups):**")
@@ -103,7 +119,6 @@ with st.form("ticket_form", clear_on_submit=False):
   with bcn_col9:
     bcn9 = st.text_input("BCN 9", value=def_bcns[8] if len(def_bcns) > 8 else "")
 
-  # 修复点：这里加上了 value=def_serial 确保编辑时正确回填
   serial_val = st.text_input(
       "Serial", value=def_serial, placeholder="输入 Serial 流水号..."
   )
@@ -149,6 +164,7 @@ with st.form("ticket_form", clear_on_submit=False):
             "date": date_str,
             "draw": draw_val,
             "number": number_val,
+            "prize_type": prize_type,
             "bcn_list": [
                 bcn1,
                 bcn2,
@@ -174,6 +190,7 @@ with st.form("ticket_form", clear_on_submit=False):
             r["date"] = date_str
             r["draw"] = draw_val
             r["number"] = number_val
+            r["prize_type"] = prize_type
             r["bcn_list"] = [
                 bcn1,
                 bcn2,
@@ -204,7 +221,7 @@ if st.session_state.edit_id is not None:
 
 st.divider()
 
-# ==================== 2. Search 搜索与历史表格区（隐藏 Serial） ====================
+# ==================== 2. Search 搜索与历史表格区 ====================
 st.subheader("🔍 Search & History")
 
 search_query = st.text_input(
@@ -223,6 +240,7 @@ if search_query.strip():
       or q in str(r.get("number", ""))
       or any(q in str(b) for b in r.get("bcn_list", []))
       or q in str(r.get("serial", ""))
+      or q.lower() in str(r.get("prize_type", "")).lower()
   ]
 
 if filtered_records:
@@ -233,6 +251,7 @@ if filtered_records:
         "Date": r["date"],
         "Draw": r["draw"],
         "Number": r["number"],
+        "Prize": r.get("prize_type", "-"),  # 可选：如果在表格中也想顺便看奖项类型，可以保留此列
         "Score": r.get("score", 0),
         "Percentage": r.get("percentage", "0.00%"),
     })
@@ -246,7 +265,7 @@ else:
 with st.expander("⚙️ Manage Records (Edit / Delete)"):
   if records:
     record_options = {
-        f"ID {r['id']} | Date: {r['date']} | Draw: {r['draw']} | Num: {r['number']}": (
+        f"ID {r['id']} | Date: {r['date']} | Draw: {r['draw']} | Num: {r['number']} ({r.get('prize_type', '')})": (
             r["id"]
         )
         for r in records
