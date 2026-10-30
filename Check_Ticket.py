@@ -44,7 +44,7 @@ if st.session_state.edit_id is not None:
       (r for r in records if r["id"] == st.session_state.edit_id), None
   )
 
-# ==================== 1. 输入表单区 ====================
+# ==================== 1. 第一个 Form：录入与修改表单 ====================
 form_title = (
     f"✏️ Edit Record (ID: {st.session_state.edit_id})"
     if editing_record
@@ -76,7 +76,7 @@ def_bcns = (
 )
 def_serial = editing_record.get("serial", "") if editing_record else ""
 
-with st.form("ticket_form", clear_on_submit=False):
+with st.form("ticket_purchase_form", clear_on_submit=False):
   col1, col2 = st.columns(2)
   with col1:
     date_val = st.date_input("Date", value=def_date)
@@ -220,25 +220,27 @@ if st.session_state.edit_id is not None:
 
 st.divider()
 
-# ==================== 2. Search 搜索与历史表格区 ====================
+# ==================== 2. 第二个 Form：独立的 Search 搜索与筛选表单 ====================
 st.subheader("🔍 Search & History")
 
-# 采用分栏：左边是综合搜索框，右边是专用的号码筛选小格子
-col_s1, col_s2 = st.columns([2, 1])
-with col_s1:
-  search_query = st.text_input(
-      "Search keyword (Combine / BCN / Serial)",
-      value="",
-      placeholder="输入关键词搜索...",
-  )
-with col_s2:
-  filter_num = st.text_input(
-      "Filter Number", value="", placeholder="输入4位数号码筛选..."
-  )
+with st.form("search_form"):
+  col_s1, col_s2 = st.columns([2, 1])
+  with col_s1:
+    search_query = st.text_input(
+        "Search keyword (Combine / BCN / Serial)",
+        value="",
+        placeholder="输入关键词搜索...",
+    )
+  with col_s2:
+    filter_num = st.text_input(
+        "Filter Number", value="", placeholder="输入4位数号码筛选..."
+    )
+
+  search_submitted = st.form_submit_button("🔍 Search / Filter")
 
 filtered_records = records
 
-# 1. 综合关键词筛选
+# 过滤逻辑：只要点击了搜索或输入了内容都会实时/按表单提交过滤
 if search_query.strip():
   q = search_query.strip()
   filtered_records = [
@@ -251,7 +253,6 @@ if search_query.strip():
       or q.lower() in str(r.get("prize_type", "")).lower()
   ]
 
-# 2. 专用号码格子筛选
 if filter_num.strip():
   fn = filter_num.strip()
   filtered_records = [
@@ -301,10 +302,4 @@ with st.expander("⚙️ Manage Records (Edit / Delete)"):
           records = [r for r in records if r["id"] != target_id]
           for idx, r in enumerate(records, start=1):
             r["id"] = idx
-          save_data(records)
-          if st.session_state.edit_id == target_id:
-            st.session_state.edit_id = None
-          st.success("删除成功！")
-          st.rerun()
-  else:
-    st.write("暂无任何记录。")
+          save_data(records
