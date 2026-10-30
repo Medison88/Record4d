@@ -1,32 +1,102 @@
 from datetime import datetime
 import json
 import os
+import gspread
 import pandas as pd
 import streamlit as st
-
-DATA_FILE = "passup_records.json"
 
 # 页面配置
 st.set_page_config(page_title="Passup Record App", page_icon="📊", layout="centered")
 
+# ==================== Google Sheets 云端数据库配置 ====================
+SHEET_NAME = "Ticket_Database"  # 请确保你的谷歌表格名称和这个完全一致
 
-# 加载数据
+
+@st.cache_resource
+def init_gspread():
+  if "gcp_service_account" in st.secrets:
+    # 从 Streamlit Secrets 读取凭证
+    creds_json = st.secrets["gcp_service_account"]
+    if isinstance(creds_json, str):
+      creds_dict = json.loads(creds_json)
+    else:
+      creds_dict = dict(creds_json)
+    gc = gspread.service_account_from_dict(creds_dict)
+  else:
+    # 本地测试时读取同目录下的 credentials.json 文件
+    gc = gspread.service_account(filename="credentials.json")
+  return gc.open(SHEET_NAME).sheet1
+
+
+try:
+  sheet = init_gspread()
+except Exception as e:
+  st.error(
+      f"连接 Google Sheets 失败！请检查 Streamlit Secrets 配置或表格名称是否正确。"
+      f" 错误信息: {e}"
+  )
+  st.stop()
+
+
+# 加载数据函数 (从 Google Sheets 读取)
 def load_data():
-  if os.path.exists(DATA_FILE):
-    try:
-      with open(DATA_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
-    except json.JSONDecodeError:
-      return []
-  return []
+  try:
+    records = sheet.get_all_records()
+    # 确保数值类型转换正确
+    for r in records:
+      r["id"] = int(r.get("id", 0))
+      r["pay_dollar"] = float(r.get("pay_dollar", 0.0))
+      r["pay_q"] = float(r.get("pay_q", 0.0))
+      r["unpaid"] = float(r.get("unpaid", 0.0))
+      r["cash"] = float(r.get("cash", 0.0))
+      r["epay"] = float(r.get("epay", 0.0))
+      r["total"] = float(r.get("total", 0.0))
+    return records
+  except Exception as e:
+    st.error(f"读取 Google Sheets 数据失败: {e}")
+    return []
 
 
-# 保存数据
+# 保存/更新/删除数据函数 (同步写回 Google Sheets)
 def save_data(records):
-  with open(DATA_FILE, "w", encoding="utf-8") as f:
-    json.dump(records, f, ensure_ascii=False, indent=4)
+  try:
+    # 清空表格并重新写入表头和所有数据，确保 ID 排序和内容完美同步
+    sheet.clear()
+    headers = [
+        "id",
+        "date",
+        "terminal",
+        "pay_dollar",
+        "pay_q",
+        "unpaid",
+        "cash",
+        "epay",
+        "total",
+        "note",
+    ]
+    sheet.append_row(headers)
+
+    for r in records:
+      row = [
+          r.get("id"),
+          r.get("date"),
+          r.get("terminal"),
+          r.get("pay_dollar"),
+          r.get("pay_q"),
+          r.get("unpaid"),
+          r.get("cash"),
+          r.get("epay"),
+          r.get("total"),
+          r.get("note", "No Record"),
+      ]
+      sheet.append_row(row)
+    return True
+  except Exception as e:
+    st.error(f"保存到 Google Sheets 失败: {e}")
+    return False
 
 
+# 加载当前所有记录
 records = load_data()
 
 st.title("📊 Daily Passup Record")
@@ -102,7 +172,9 @@ with st.form("passup_form", clear_on_submit=False):
         format="%.2f",
     )
 
-  note = st.text_input("Note", value=editing_record["note"] if editing_record else "")
+  note = st.text_input(
+      "Note", value=editing_record["note"] if editing_record else ""
+  )
 
   submitted = st.form_submit_button("💾 Save / Update Record")
 
@@ -125,7 +197,7 @@ with st.form("passup_form", clear_on_submit=False):
           "note": note.strip() or "No Record",
       }
       records.append(new_record)
-      st.success("Record saved successfully!")
+      st.success("Record saved successfully to Google Sheets!")
     else:
       # 更新
       for r in records:
@@ -140,7 +212,10 @@ with st.form("passup_form", clear_on_submit=False):
           r["total"] = total
           r["note"] = note.strip() or "No Record"
           break
-      st.success(f"Record ID {st.session_state.edit_id} updated successfully!")
+      st.success(
+          f"Record ID {st.session_state.edit_id} updated successfully in Google"
+          " Sheets!"
+      )
       st.session_state.edit_id = None
 
     save_data(records)
@@ -156,7 +231,9 @@ st.divider()
 # ==================== 2. 筛选与历史表格区域 ====================
 st.subheader("📋 Records History & Summary")
 
-filter_date = st.date_input("Filter by Date", value=datetime.now().date(), key="filter_date")
+filter_date = st.date_input(
+    "Filter by Date", value=datetime.now().date(), key="filter_date"
+)
 filter_date_str = filter_date.strftime("%Y-%m-%d")
 
 filtered_records = [r for r in records if r.get("date") == filter_date_str]
@@ -243,7 +320,7 @@ if filtered_records:
     term_summary_data.append({
         "Terminal": t,
         "Pay ($)": f"{t_dollar:.2f}",
-       "Pay (Q)": f"{t_q:.2f}",
+        "Pay (Q)": f"{t_q:.2f}",
         "Unpaid": f"{t_unpaid:.2f}",
         "Cash": f"{t_cash:.2f}",
         "E-Pay": f"{t_epay:.2f}",
@@ -291,7 +368,7 @@ if filtered_records:
         save_data(records)
         if st.session_state.edit_id == target_id:
           st.session_state.edit_id = None
-        st.success("Record deleted successfully!")
+        st.success("Record deleted successfully from Google Sheets!")
         st.rerun()
 else:
   st.info(f"No records found for date: {filter_date_str}")
