@@ -9,7 +9,8 @@ import streamlit as st
 st.set_page_config(page_title="Passup Record App", page_icon="📊", layout="centered")
 
 # ==================== Google Sheets 云端数据库配置 ====================
-SHEET_NAME = "Ticket_Database"  # 请确保你的谷歌表格名称和这个完全一致
+# 使用你专属的 Google Sheets ID，避免按名称搜索失败
+SPREADSHEET_ID = "16GTnxyRGxVD1aNRWBE3LyihraLlPbd7otGqRG_bv0is"
 
 
 @st.cache_resource
@@ -25,14 +26,16 @@ def init_gspread():
   else:
     # 本地测试时读取同目录下的 credentials.json 文件
     gc = gspread.service_account(filename="credentials.json")
-  return gc.open(SHEET_NAME).sheet1
+
+  # 使用 open_by_key 通过 ID 直接连接，100% 稳定
+  return gc.open_by_key(SPREADSHEET_ID).sheet1
 
 
 try:
   sheet = init_gspread()
 except Exception as e:
   st.error(
-      f"连接 Google Sheets 失败！请检查 Streamlit Secrets 配置或表格名称是否正确。"
+      f"连接 Google Sheets 失败！请检查 Streamlit Secrets 配置。"
       f" 错误信息: {e}"
   )
   st.stop()
@@ -44,7 +47,7 @@ def load_data():
     records = sheet.get_all_records()
     # 确保数值类型转换正确
     for r in records:
-      r["id"] = int(r.get("id", 0))
+      r["id"] = int(r.get("id", 0)) if r.get("id") else 0
       r["pay_dollar"] = float(r.get("pay_dollar", 0.0))
       r["pay_q"] = float(r.get("pay_q", 0.0))
       r["unpaid"] = float(r.get("unpaid", 0.0))
