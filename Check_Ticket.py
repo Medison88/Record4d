@@ -8,7 +8,7 @@ DATA_FILE = "ticket_records.json"
 
 # 页面配置
 st.set_page_config(
-    page_title="Ticket Purchase & Record App", page_icon="🎟️", layout="centered"
+    page_title="Ticket Purchase & 4D Analysis", page_icon="🎟️", layout="centered"
 )
 
 
@@ -31,11 +31,11 @@ def save_data(records):
 
 records = load_data()
 
-st.title("🎟️ Ticket Purchase & Record System")
+st.title("🎟️ Ticket Purchase & 4D Analysis")
 
 # ==================== 1. 输入表单区（无默认值） ====================
 with st.form("ticket_form", clear_on_submit=True):
-  st.subheader("Ticket Purchase")
+  st.subheader("Ticket Purchase & Calculator")
 
   col1, col2 = st.columns(2)
   with col1:
@@ -43,7 +43,7 @@ with st.form("ticket_form", clear_on_submit=True):
   with col2:
     draw_val = st.text_input("Draw", value="", placeholder="例如: 442/26 或 442")
 
-  number_val = st.text_input("Number (4 digits)", value="", placeholder="例如: 2014")
+  number_val = st.text_input("Number (4 digits)", value="", placeholder="例如: 7338")
 
   st.markdown("**BCN Numbers (Multi-groups):**")
   bcn_col1, bcn_col2, bcn_col3, bcn_col4, bcn_col5 = st.columns(5)
@@ -68,17 +68,17 @@ with st.form("ticket_form", clear_on_submit=True):
   with bcn_col9:
     bcn9 = st.text_input("BCN 9", value="")
 
-  serial_val = st.text_input("Serial", value="", placeholder="输入流水号...")
+  serial_val = st.text_input("Serial", value="", placeholder="输入 Serial 流水号...")
 
   submitted = st.form_submit_button("📥 Save Record")
 
   if submitted:
     if not date_val:
-      st.error("请选择日期！")
+      st.error("请选择 Date 日期！")
     else:
       date_str = date_val.strftime("%d/%m/%Y")
 
-      # 自动组合 Combine：所有 BCN 拼接 + Serial + Draw（如 442/26 或 442 自动截取斜杠前或直接取数字）
+      # 1. 拼接 Combine 字符串 (所有 BCN + Serial + Draw 截取数字)
       draw_cleaned = draw_val.split("/")[0] if "/" in draw_val else draw_val
       bcn_combined = "".join(
           [bcn1, bcn2, bcn3, bcn4, bcn5, bcn6, bcn7, bcn8, bcn9]
@@ -88,6 +88,18 @@ with st.form("ticket_form", clear_on_submit=True):
           f"{bcn_combined_clean}{serial_val.strip()}{draw_cleaned.strip()}"
       )
 
+      # 2. 自动计算得分与 Percentage (红字串即为 Combine 字符串)
+      total_len = len(combine_result)
+      total_score = 0
+
+      if number_val.strip():
+        for digit in number_val.strip():
+          if digit.isdigit():
+            total_score += combine_result.count(digit)
+
+      percentage = (total_score / total_len * 100) if total_len > 0 else 0.0
+
+      # 3. 保存记录 (不单独存放流水号字段到显示表格)
       new_record = {
           "id": len(records) + 1,
           "date": date_str,
@@ -104,12 +116,15 @@ with st.form("ticket_form", clear_on_submit=True):
               bcn8,
               bcn9,
           ],
-          "serial": serial_val,
           "combine": combine_result,
+          "score": total_score,
+          "percentage": f"{percentage:.2f}%",
       }
       records.append(new_record)
       save_data(records)
-      st.success("记录保存成功！")
+      st.success(
+          f"记录保存成功！得分: {total_score} | 真实 Percentage: {percentage:.2f}%"
+      )
       st.rerun()
 
 st.divider()
@@ -120,7 +135,7 @@ st.subheader("🔍 Search")
 search_query = st.text_input(
     "Search by Number, BCN or Combine string",
     value="",
-    placeholder="输入号码、BCN或Combine进行搜索...",
+    placeholder="输入号码或 BCN 搜索...",
 )
 
 filtered_records = records
@@ -132,7 +147,6 @@ if search_query.strip():
       if q in str(r.get("combine", ""))
       or q in str(r.get("number", ""))
       or any(q in str(b) for b in r.get("bcn_list", []))
-      or q in str(r.get("serial", ""))
   ]
 
 if filtered_records:
@@ -143,7 +157,9 @@ if filtered_records:
         "Date": r["date"],
         "Draw": r["draw"],
         "Number": r["number"],
-        "BCN": r["combine"],  # BCN 列对应显示 Combine 字符串
+        "Score": r.get("score", 0),  # 得分
+        "Percentage": r.get("percentage", "0.00%"),  # 真实占比
+        "BCN": r["combine"],  # 显示 Combine 字符串
     })
 
   df = pd.DataFrame(table_data)
@@ -151,7 +167,7 @@ if filtered_records:
 else:
   st.info("暂无匹配的记录。")
 
-# 管理/删除记录
+# 删除管理
 with st.expander("⚙️ Manage Records (Delete)"):
   if records:
     del_options = {
