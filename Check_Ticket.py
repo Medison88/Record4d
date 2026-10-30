@@ -68,7 +68,7 @@ with tab_input:
   def_num = editing_record["number"] if editing_record else ""
 
   # 奖项类型选项
-  prize_options = ["First", "Second", "Third", "Special", "Consolation"]
+  prize_options = ["First", "Second", "Third", "Special", "Consolation", " "]
   def_prize = (
       editing_record["prize_type"]
       if editing_record and editing_record.get("prize_type") in prize_options
