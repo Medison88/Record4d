@@ -102,7 +102,7 @@ if st.session_state.edit_id is not None:
       (r for r in records if r["id"] == st.session_state.edit_id), None
   )
 
-# ==================== 1. 输入区域 ====================
+# ==================== 1. 输入表单区域 ====================
 form_title = (
     f"✏️ Edit Record (ID: {st.session_state.edit_id})"
     if editing_record
@@ -180,7 +180,49 @@ note = st.text_input(
     key=f"f_note_{v}",
 )
 
-# 💾 保存 / 更新按钮紧跟在 Note 下方
+# ==================== 2. Manage Selected Records 区域 (紧跟在 Note 下方) ====================
+filter_date_temp = date_val.strftime("%Y-%m-%d")
+current_date_records = [
+    r for r in records if r.get("date") == filter_date_temp
+]
+
+if current_date_records:
+  st.markdown("---")
+  st.subheader("⚙️ Manage Selected Date Records")
+  record_options = {
+      f"ID {r['id']} | {r['terminal']} | Total: {r['total']}": r["id"]
+      for r in current_date_records
+  }
+  selected_option = st.selectbox(
+      f"Select a record for {filter_date_temp} to Edit or Delete",
+      options=list(record_options.keys()),
+      key=f"manage_select_{v}",
+  )
+
+  if selected_option:
+    target_id = record_options[selected_option]
+    col_edit, col_del = st.columns(2)
+    with col_edit:
+      if st.button("✏️ Edit This Record", use_container_width=True):
+        st.session_state.edit_id = target_id
+        st.session_state.form_version += 1
+        st.rerun()
+    with col_del:
+      if st.button(
+          "🗑️ Delete This Record", type="primary", use_container_width=True
+      ):
+        records = [r for r in records if r["id"] != target_id]
+        for idx, r in enumerate(records, start=1):
+          r["id"] = idx
+        save_data(records)
+        if st.session_state.edit_id == target_id:
+          st.session_state.edit_id = None
+        st.success("Record deleted successfully!")
+        st.rerun()
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# ==================== 3. Save / Update 按钮 (放在 Manage 区域下方) ====================
 submitted = st.button(
     "💾 Save / Update Record", type="primary", use_container_width=True
 )
@@ -232,7 +274,7 @@ if st.session_state.edit_id is not None:
 
 st.divider()
 
-# ==================== 2. 筛选与历史表格区域 ====================
+# ==================== 4. 历史表格与汇总统计区域 ====================
 st.subheader("📋 Records History & Summary")
 
 filter_date = st.date_input(
@@ -259,7 +301,6 @@ if filtered_records:
   df = df[[c for c in display_cols if c in df.columns]]
   st.dataframe(df, use_container_width=True, hide_index=True)
 
-  # 计算总计
   sum_dollar = sum(r["pay_dollar"] for r in filtered_records)
   sum_q = sum(r["pay_q"] for r in filtered_records)
   sum_unpaid = sum(r["unpaid"] for r in filtered_records)
@@ -267,7 +308,6 @@ if filtered_records:
   sum_epay = sum(r["epay"] for r in filtered_records)
   sum_total = sum(r["total"] for r in filtered_records)
 
-  # 3. 顶部总计栏 (Summary)
   st.markdown("### 📊 Daily Summary (Overall)")
   sc1, sc2, sc3, sc4, sc5, sc6 = st.columns(6)
   with sc1:
@@ -307,7 +347,6 @@ if filtered_records:
         unsafe_allow_html=True,
     )
 
-  # 3.1 终端明细表格 + Grand Total (Breakdown by Terminal)
   st.markdown("### 🏷️ Breakdown by Terminal & Grand Total")
   terminals_list = ["Terminal 1", "Terminal 2", "Terminal 3", "Terminal 4"]
   term_summary_data = []
@@ -331,7 +370,6 @@ if filtered_records:
         "Total": f"{t_total:.2f}",
     })
 
-  # 追加 Grand Total 行
   term_summary_data.append({
       "Terminal": "Grand Total",
       "Pay ($)": f"{sum_dollar:.2f}",
@@ -344,36 +382,5 @@ if filtered_records:
 
   df_term_summary = pd.DataFrame(term_summary_data)
   st.dataframe(df_term_summary, use_container_width=True, hide_index=True)
-
-  st.divider()
-
-  # ==================== 4. 修改与删除管理操作（历史表格区域下方） ====================
-  st.subheader("⚙️ Manage Selected Date Records")
-  record_options = {
-      f"ID {r['id']} | {r['terminal']} | Total: {r['total']}": r["id"]
-      for r in filtered_records
-  }
-  selected_option = st.selectbox(
-      "Select a record to Edit or Delete", options=list(record_options.keys())
-  )
-
-  if selected_option:
-    target_id = record_options[selected_option]
-    col_edit, col_del = st.columns(2)
-    with col_edit:
-      if st.button("✏️ Edit This Record", use_container_width=True):
-        st.session_state.edit_id = target_id
-        st.session_state.form_version += 1
-        st.rerun()
-    with col_del:
-      if st.button("🗑️ Delete This Record", type="primary", use_container_width=True):
-        records = [r for r in records if r["id"] != target_id]
-        for idx, r in enumerate(records, start=1):
-          r["id"] = idx
-        save_data(records)
-        if st.session_state.edit_id == target_id:
-          st.session_state.edit_id = None
-        st.success("Record deleted successfully!")
-        st.rerun()
 else:
   st.info(f"No records found for date: {filter_date_str}")
