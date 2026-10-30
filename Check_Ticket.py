@@ -56,30 +56,19 @@ if sheet is None:
 
 
 # ==================== 辅助函数：将 BCN 列表转为纯数字无符号文本 ====================
+
+
 def get_bcn_string(r):
-  """将 bcn_list 转为纯文本（空格分隔，不带方括号和引号）"""
+  """将 bcn_list 转为完全连续的纯数字长字符串（无空格、无符号）"""
   bcn_val = r.get("bcn_list", [""] * 9)
   if isinstance(bcn_val, list):
-    return " ".join([str(b).strip() for b in bcn_val if str(b).strip()])
+    # 用空字符串 join，把所有数字紧密拼在一起
+    return "".join([str(b).strip() for b in bcn_val if str(b).strip()])
   return str(bcn_val).strip()
 
 
 # ==================== 云端数据读写函数（兼容与处理无符号 BCN） ====================
-def load_data():
-  try:
-    rows = sheet.get_all_values()
-    records = []
-    if not rows:
-      return []
-
-    for row in rows:
-      if not row or not row[0]:
-        continue
-      try:
-        rid = int(row[0])
-        bcn_raw = row[5] if len(row) > 5 else ""
-
-        # 智能解析：兼容旧的 JSON 格式及新的纯数字空格分隔格式
+# 智能解析：兼容旧格式或无符号连续长字符串格式
         bcn_list = []
         if bcn_raw.startswith("["):
           try:
@@ -87,10 +76,14 @@ def load_data():
           except:
             bcn_list = []
         else:
-          # 按空格切分，剔除空白项
-          bcn_list = [b.strip() for b in bcn_raw.split() if b.strip()]
+          # 如果是连在一起的长字符串，每 5 位切成一组（BCN 每组 5 位）
+          bcn_raw_clean = "".join(bcn_raw.split())
+          bcn_list = [
+              bcn_raw_clean[i : i + 5]
+              for i in range(0, len(bcn_raw_clean), 5)
+              if bcn_raw_clean[i : i + 5]
+          ]
 
-        # 补齐至 9 个元素以便表单回填
         while len(bcn_list) < 9:
           bcn_list.append("")
         bcn_list = bcn_list[:9]
