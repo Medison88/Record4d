@@ -20,17 +20,17 @@ SPREADSHEET_ID = "1j9R36vCXpSNPuQ8UuQU_k5gZm9xRPcIJ7RbN1hQrLq4"
 def init_gspread():
   try:
     if "gcp_service_account" in st.secrets:
-      # 将 Streamlit 的 Secrets 转为标准字典
       creds_dict = dict(st.secrets["gcp_service_account"])
 
-      # 核心修复：清洗私钥中的隐藏回车符和换行错位
       if "private_key" in creds_dict:
         pk = str(creds_dict["private_key"])
-        # 统一清除 Windows 的 \r 符号，避免 Base64 偏移报错
+        # 1. 彻底清除 Windows 换行符带来的污染
         pk = pk.replace("\r\n", "\n").replace("\r", "\n")
-        # 确保字面量的 \n 也能正确转为真实换行
+        # 2. 如果后台是用字面量写的 \n，将其转为真正的换行
         if "\\n" in pk:
           pk = pk.replace("\\n", "\n")
+        # 3. 去除首尾多余的空白
+        pk = pk.strip()
         creds_dict["private_key"] = pk
     else:
       st.error(
