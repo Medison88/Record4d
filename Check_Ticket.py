@@ -359,3 +359,25 @@ with tab_search:
     ]
 
   if filter_num.strip():
+    fn = filter_num.strip()
+    filtered_records = [
+        r for r in filtered_records if fn in str(r.get("number", ""))
+    ]
+
+  if filtered_records:
+    table_data = []
+    for r in filtered_records:
+      table_data.append({
+          "ID": r["id"],
+          "Date": r["date"],
+          "Draw": r["draw"],
+          "Number": r["number"],
+          "Prize": r.get("prize_type", "-"),
+          "Score": r.get("score", 0),
+          "Percentage": r.get("percentage", "0.00%"),
+      })
+
+    df = pd.DataFrame(table_data)
+    st.dataframe(df, use_container_width=True, hide_index=True)
+  else:
+    st.info("暂无匹配的记录。")
