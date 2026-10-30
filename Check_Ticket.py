@@ -89,7 +89,6 @@ with st.form("ticket_form", clear_on_submit=False):
       "Number (4 digits)", value=def_num, placeholder="例如: 7338"
   )
 
-  # 新增的奖项下拉菜单
   prize_type = st.selectbox(
       "Prize Type",
       options=prize_options,
@@ -224,72 +223,21 @@ st.divider()
 # ==================== 2. Search 搜索与历史表格区 ====================
 st.subheader("🔍 Search & History")
 
-search_query = st.text_input(
-    "Search by Number, BCN or Combine string",
-    value="",
-    placeholder="输入号码搜索...",
-)
+# 采用分栏：左边是综合搜索框，右边是专用的号码筛选小格子
+col_s1, col_s2 = st.columns([2, 1])
+with col_s1:
+  search_query = st.text_input(
+      "Search keyword (Combine / BCN / Serial)",
+      value="",
+      placeholder="输入关键词搜索...",
+  )
+with col_s2:
+  filter_num = st.text_input(
+      "Filter Number", value="", placeholder="输入4位数号码筛选..."
+  )
 
 filtered_records = records
+
+# 1. 综合关键词筛选
 if search_query.strip():
-  q = search_query.strip()
-  filtered_records = [
-      r
-      for r in records
-      if q in str(r.get("combine", ""))
-      or q in str(r.get("number", ""))
-      or any(q in str(b) for b in r.get("bcn_list", []))
-      or q in str(r.get("serial", ""))
-      or q.lower() in str(r.get("prize_type", "")).lower()
-  ]
-
-if filtered_records:
-  table_data = []
-  for r in filtered_records:
-    table_data.append({
-        "ID": r["id"],
-        "Date": r["date"],
-        "Draw": r["draw"],
-        "Number": r["number"],
-        "Prize": r.get("prize_type", "-"),  # 可选：如果在表格中也想顺便看奖项类型，可以保留此列
-        "Score": r.get("score", 0),
-        "Percentage": r.get("percentage", "0.00%"),
-    })
-
-  df = pd.DataFrame(table_data)
-  st.dataframe(df, use_container_width=True, hide_index=True)
-else:
-  st.info("暂无匹配的记录。")
-
-# ==================== 3. 管理区（支持修改与删除） ====================
-with st.expander("⚙️ Manage Records (Edit / Delete)"):
-  if records:
-    record_options = {
-        f"ID {r['id']} | Date: {r['date']} | Draw: {r['draw']} | Num: {r['number']} ({r.get('prize_type', '')})": (
-            r["id"]
-        )
-        for r in records
-    }
-    selected_option = st.selectbox(
-        "Select a record to Edit or Delete", options=list(record_options.keys())
-    )
-
-    if selected_option:
-      target_id = record_options[selected_option]
-      col_edit, col_del = st.columns(2)
-      with col_edit:
-        if st.button("✏️ Edit This Record"):
-          st.session_state.edit_id = target_id
-          st.rerun()
-      with col_del:
-        if st.button("🗑️ Delete This Record", type="primary"):
-          records = [r for r in records if r["id"] != target_id]
-          for idx, r in enumerate(records, start=1):
-            r["id"] = idx
-          save_data(records)
-          if st.session_state.edit_id == target_id:
-            st.session_state.edit_id = None
-          st.success("删除成功！")
-          st.rerun()
-  else:
-    st.write("暂无任何记录。")
+  q = search_query.
