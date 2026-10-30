@@ -9,11 +9,11 @@ import streamlit as st
 st.set_page_config(
     page_title="Ticket Purchase & 4D Analysis", page_icon="🎟️", layout="centered"
 )
-
 # ==================== Google Sheets 云端数据库配置 (Calculate_Ticket_DB) ====================
 SPREADSHEET_ID = "1j9R36vCXpSNPuQ8UuQU_k5gZm9xRPcIJ7RbN1hQrLq4"
 
 
+# 📍 就是这里：
 @st.cache_resource
 def init_gspread():
   if "gcp_service_account" in st.secrets:
