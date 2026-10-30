@@ -357,4 +357,43 @@ with tab_search:
     )
   with col_s2:
     filter_num = st.text_input(
-        "Filter Number",
+        "Filter Number", value="", placeholder="输入4位数号码筛选..."
+    )
+
+  filtered_records = records
+
+  if search_query.strip():
+    q = search_query.strip()
+    filtered_records = [
+        r
+        for r in filtered_records
+        if q in str(r.get("combine", ""))
+        or q in str(r.get("number", ""))
+        or any(q in str(b) for b in r.get("bcn_list", []))
+        or q in str(r.get("serial", ""))
+        or q.lower() in str(r.get("prize_type", "")).lower()
+    ]
+
+  if filter_num.strip():
+    fn = filter_num.strip()
+    filtered_records = [
+        r for r in filtered_records if fn in str(r.get("number", ""))
+    ]
+
+  if filtered_records:
+    table_data = []
+    for r in filtered_records:
+      table_data.append({
+          "ID": r["id"],
+          "Date": r["date"],
+          "Draw": r["draw"],
+          "Number": r["number"],
+          "Prize": r.get("prize_type", "-"),
+          "Score": r.get("score", 0),
+          "Percentage": r.get("percentage", "0.00%"),
+      })
+
+    df = pd.DataFrame(table_data)
+    st.dataframe(df, use_container_width=True, hide_index=True)
+  else:
+    st.info("暂无匹配的记录。")
