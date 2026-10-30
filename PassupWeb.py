@@ -93,36 +93,14 @@ st.title("📊 Daily Passup Record")
 if "edit_id" not in st.session_state:
   st.session_state.edit_id = None
 
+# 引入一个表单渲染版本号控制（用于在保存后强制刷新组件 key 从而清空格子）
+if "form_version" not in st.session_state:
+  st.session_state.form_version = 0
+
 editing_record = None
 if st.session_state.edit_id is not None:
   editing_record = next(
       (r for r in records if r["id"] == st.session_state.edit_id), None
-  )
-
-# ==================== 初始化输入框的 Session State 默认值 ====================
-if "f_pay_dollar" not in st.session_state:
-  st.session_state.f_pay_dollar = (
-      float(editing_record["pay_dollar"]) if editing_record else 0.0
-  )
-if "f_pay_q" not in st.session_state:
-  st.session_state.f_pay_q = (
-      float(editing_record["pay_q"]) if editing_record else 0.0
-  )
-if "f_unpaid" not in st.session_state:
-  st.session_state.f_unpaid = (
-      float(editing_record["unpaid"]) if editing_record else 0.0
-  )
-if "f_cash" not in st.session_state:
-  st.session_state.f_cash = (
-      float(editing_record["cash"]) if editing_record else 0.0
-  )
-if "f_epay" not in st.session_state:
-  st.session_state.f_epay = (
-      float(editing_record["epay"]) if editing_record else 0.0
-  )
-if "f_note" not in st.session_state:
-  st.session_state.f_note = (
-      str(editing_record["note"]) if editing_record else ""
   )
 
 # ==================== 1. 输入区域 ====================
@@ -133,6 +111,9 @@ form_title = (
 )
 st.subheader(form_title)
 
+# 动态后缀，当保存成功时让 version + 1，强制所有输入框重新创建并清空
+v = st.session_state.form_version
+
 col1, col2 = st.columns(2)
 with col1:
   default_date = (
@@ -140,7 +121,7 @@ with col1:
       if editing_record
       else datetime.now().date()
   )
-  date_val = st.date_input("Date", value=default_date, key="f_date")
+  date_val = st.date_input("Date", value=default_date, key=f"f_date_{v}")
 
 with col2:
   terminals = ["Terminal 1", "Terminal 2", "Terminal 3", "Terminal 4"]
@@ -150,26 +131,56 @@ with col2:
       else 0
   )
   terminal_val = st.selectbox(
-      "Terminal", terminals, index=default_term_idx, key="f_terminal"
+      "Terminal",
+      terminals,
+      index=default_term_idx,
+      key=f"f_terminal_{v}",
   )
 
 col3, col4, col5 = st.columns(3)
 with col3:
   pay_dollar = st.number_input(
-      "Payment ($)", format="%.2f", key="f_pay_dollar"
+      "Payment ($)",
+      value=float(editing_record["pay_dollar"]) if editing_record else 0.0,
+      format="%.2f",
+      key=f"f_pay_dollar_{v}",
   )
 with col4:
-  pay_q = st.number_input("Payment (Q)", format="%.2f", key="f_pay_q")
+  pay_q = st.number_input(
+      "Payment (Q)",
+      value=float(editing_record["pay_q"]) if editing_record else 0.0,
+      format="%.2f",
+      key=f"f_pay_q_{v}",
+  )
 with col5:
-  unpaid = st.number_input("Unpaid Ticket", format="%.2f", key="f_unpaid")
+  unpaid = st.number_input(
+      "Unpaid Ticket",
+      value=float(editing_record["unpaid"]) if editing_record else 0.0,
+      format="%.2f",
+      key=f"f_unpaid_{v}",
+  )
 
 col6, col7 = st.columns(2)
 with col6:
-  cash = st.number_input("Cash", format="%.2f", key="f_cash")
+  cash = st.number_input(
+      "Cash",
+      value=float(editing_record["cash"]) if editing_record else 0.0,
+      format="%.2f",
+      key=f"f_cash_{v}",
+  )
 with col7:
-  epay = st.number_input("E-Pay", format="%.2f", key="f_epay")
+  epay = st.number_input(
+      "E-Pay",
+      value=float(editing_record["epay"]) if editing_record else 0.0,
+      format="%.2f",
+      key=f"f_epay_{v}",
+  )
 
-note = st.text_input("Note", key="f_note")
+note = st.text_input(
+    "Note",
+    value=editing_record["note"] if editing_record else "",
+    key=f"f_note_{v}",
+)
 
 # 提交按钮
 submitted = st.button("💾 Save / Update Record", type="primary")
@@ -211,26 +222,14 @@ if submitted:
 
   save_data(records)
 
-  # 关键：保存成功后，显式将所有输入框的值清空/重置并删除缓存状态
-  st.session_state.f_pay_dollar = 0.0
-  st.session_state.f_pay_q = 0.0
-  st.session_state.f_unpaid = 0.0
-  st.session_state.f_cash = 0.0
-  st.session_state.f_epay = 0.0
-  st.session_state.f_note = ""
-
+  # 关键：通过让 form_version 自增，使下一次渲染时所有输入框生成全新的 key，从而完美清空格子！
+  st.session_state.form_version += 1
   st.rerun()
 
 if st.session_state.edit_id is not None:
   if st.button("❌ Cancel Edit"):
     st.session_state.edit_id = None
-    # 取消编辑时也重置格子
-    st.session_state.f_pay_dollar = 0.0
-    st.session_state.f_pay_q = 0.0
-    st.session_state.f_unpaid = 0.0
-    st.session_state.f_cash = 0.0
-    st.session_state.f_epay = 0.0
-    st.session_state.f_note = ""
+    st.session_state.form_version += 1
     st.rerun()
 
 st.divider()
@@ -301,14 +300,7 @@ if filtered_records:
     with col_edit:
       if st.button("✏️ Edit This Record"):
         st.session_state.edit_id = target_id
-        # 点击编辑时，将该记录的值填入对应的 session_state 中
-        target_rec = next(r for r in records if r["id"] == target_id)
-        st.session_state.f_pay_dollar = float(target_rec["pay_dollar"])
-        st.session_state.f_pay_q = float(target_rec["pay_q"])
-        st.session_state.f_unpaid = float(target_rec["unpaid"])
-        st.session_state.f_cash = float(target_rec["cash"])
-        st.session_state.f_epay = float(target_rec["epay"])
-        st.session_state.f_note = str(target_rec["note"])
+        st.session_state.form_version += 1
         st.rerun()
     with col_del:
       if st.button("🗑️ Delete This Record", type="primary"):
