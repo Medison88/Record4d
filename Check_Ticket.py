@@ -302,4 +302,10 @@ with st.expander("⚙️ Manage Records (Edit / Delete)"):
           records = [r for r in records if r["id"] != target_id]
           for idx, r in enumerate(records, start=1):
             r["id"] = idx
-          save_data(records
+          save_data(records)
+          if st.session_state.edit_id == target_id:
+            st.session_state.edit_id = None
+          st.success("删除成功！")
+          st.rerun()
+  else:
+    st.write("暂无任何记录。")
