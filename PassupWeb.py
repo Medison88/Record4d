@@ -99,6 +99,32 @@ if st.session_state.edit_id is not None:
       (r for r in records if r["id"] == st.session_state.edit_id), None
   )
 
+# ==================== 初始化输入框的 Session State 默认值 ====================
+if "f_pay_dollar" not in st.session_state:
+  st.session_state.f_pay_dollar = (
+      float(editing_record["pay_dollar"]) if editing_record else 0.0
+  )
+if "f_pay_q" not in st.session_state:
+  st.session_state.f_pay_q = (
+      float(editing_record["pay_q"]) if editing_record else 0.0
+  )
+if "f_unpaid" not in st.session_state:
+  st.session_state.f_unpaid = (
+      float(editing_record["unpaid"]) if editing_record else 0.0
+  )
+if "f_cash" not in st.session_state:
+  st.session_state.f_cash = (
+      float(editing_record["cash"]) if editing_record else 0.0
+  )
+if "f_epay" not in st.session_state:
+  st.session_state.f_epay = (
+      float(editing_record["epay"]) if editing_record else 0.0
+  )
+if "f_note" not in st.session_state:
+  st.session_state.f_note = (
+      str(editing_record["note"]) if editing_record else ""
+  )
+
 # ==================== 1. 输入区域 ====================
 form_title = (
     f"✏️ Edit Record (ID: {st.session_state.edit_id})"
@@ -106,9 +132,6 @@ form_title = (
     else "➕ Add New Passup Record"
 )
 st.subheader(form_title)
-
-# 按照你的要求：Date -> Terminal -> Payment($) -> Payment(Q) -> Unpaid -> Cash -> E-Pay -> Note
-# 在 Streamlit 中，按网页DOM顺序，只要垂直依次排列，浏览器的 Tab 和部分回车行为会顺着这个顺序往下走。
 
 col1, col2 = st.columns(2)
 with col1:
@@ -133,47 +156,20 @@ with col2:
 col3, col4, col5 = st.columns(3)
 with col3:
   pay_dollar = st.number_input(
-      "Payment ($)",
-      value=float(editing_record["pay_dollar"]) if editing_record else 0.0,
-      format="%.2f",
-      key="f_pay_dollar",
+      "Payment ($)", format="%.2f", key="f_pay_dollar"
   )
 with col4:
-  pay_q = st.number_input(
-      "Payment (Q)",
-      value=float(editing_record["pay_q"]) if editing_record else 0.0,
-      format="%.2f",
-      key="f_pay_q",
-  )
+  pay_q = st.number_input("Payment (Q)", format="%.2f", key="f_pay_q")
 with col5:
-  unpaid = st.number_input(
-      "Unpaid Ticket",
-      value=float(editing_record["unpaid"]) if editing_record else 0.0,
-      format="%.2f",
-      key="f_unpaid",
-  )
+  unpaid = st.number_input("Unpaid Ticket", format="%.2f", key="f_unpaid")
 
 col6, col7 = st.columns(2)
 with col6:
-  cash = st.number_input(
-      "Cash",
-      value=float(editing_record["cash"]) if editing_record else 0.0,
-      format="%.2f",
-      key="f_cash",
-  )
+  cash = st.number_input("Cash", format="%.2f", key="f_cash")
 with col7:
-  epay = st.number_input(
-      "E-Pay",
-      value=float(editing_record["epay"]) if editing_record else 0.0,
-      format="%.2f",
-      key="f_epay",
-  )
+  epay = st.number_input("E-Pay", format="%.2f", key="f_epay")
 
-note = st.text_input(
-    "Note",
-    value=editing_record["note"] if editing_record else "",
-    key="f_note",
-)
+note = st.text_input("Note", key="f_note")
 
 # 提交按钮
 submitted = st.button("💾 Save / Update Record", type="primary")
@@ -215,23 +211,26 @@ if submitted:
 
   save_data(records)
 
-  # 保存成功后自动清空各个输入框对应的 session_state 值
-  for k in [
-      "f_pay_dollar",
-      "f_pay_q",
-      "f_unpaid",
-      "f_cash",
-      "f_epay",
-      "f_note",
-  ]:
-    if k in st.session_state:
-      del st.session_state[k]
+  # 关键：保存成功后，显式将所有输入框的值清空/重置并删除缓存状态
+  st.session_state.f_pay_dollar = 0.0
+  st.session_state.f_pay_q = 0.0
+  st.session_state.f_unpaid = 0.0
+  st.session_state.f_cash = 0.0
+  st.session_state.f_epay = 0.0
+  st.session_state.f_note = ""
 
   st.rerun()
 
 if st.session_state.edit_id is not None:
   if st.button("❌ Cancel Edit"):
     st.session_state.edit_id = None
+    # 取消编辑时也重置格子
+    st.session_state.f_pay_dollar = 0.0
+    st.session_state.f_pay_q = 0.0
+    st.session_state.f_unpaid = 0.0
+    st.session_state.f_cash = 0.0
+    st.session_state.f_epay = 0.0
+    st.session_state.f_note = ""
     st.rerun()
 
 st.divider()
@@ -302,6 +301,14 @@ if filtered_records:
     with col_edit:
       if st.button("✏️ Edit This Record"):
         st.session_state.edit_id = target_id
+        # 点击编辑时，将该记录的值填入对应的 session_state 中
+        target_rec = next(r for r in records if r["id"] == target_id)
+        st.session_state.f_pay_dollar = float(target_rec["pay_dollar"])
+        st.session_state.f_pay_q = float(target_rec["pay_q"])
+        st.session_state.f_unpaid = float(target_rec["unpaid"])
+        st.session_state.f_cash = float(target_rec["cash"])
+        st.session_state.f_epay = float(target_rec["epay"])
+        st.session_state.f_note = str(target_rec["note"])
         st.rerun()
     with col_del:
       if st.button("🗑️ Delete This Record", type="primary"):
