@@ -180,6 +180,56 @@ note = st.text_input(
     key=f"f_note_{v}",
 )
 
+# 💾 保存 / 更新按钮紧跟在 Note 下方
+submitted = st.button(
+    "💾 Save / Update Record", type="primary", use_container_width=True
+)
+
+if submitted:
+  total = pay_dollar + unpaid + cash + epay
+  date_str = date_val.strftime("%Y-%m-%d")
+
+  if st.session_state.edit_id is None:
+    new_record = {
+        "id": len(records) + 1,
+        "date": date_str,
+        "terminal": terminal_val,
+        "pay_dollar": pay_dollar,
+        "pay_q": pay_q,
+        "unpaid": unpaid,
+        "cash": cash,
+        "epay": epay,
+        "total": total,
+        "note": note.strip() or "No Record",
+    }
+    records.append(new_record)
+    st.success("Record saved successfully to Google Sheets!")
+  else:
+    for r in records:
+      if r["id"] == st.session_state.edit_id:
+        r["date"] = date_str
+        r["terminal"] = terminal_val
+        r["pay_dollar"] = pay_dollar
+        r["pay_q"] = pay_q
+        r["unpaid"] = unpaid
+        r["cash"] = cash
+        r["epay"] = epay
+        r["total"] = total
+        r["note"] = note.strip() or "No Record"
+        break
+    st.success(f"Record ID {st.session_state.edit_id} updated successfully!")
+    st.session_state.edit_id = None
+
+  save_data(records)
+  st.session_state.form_version += 1
+  st.rerun()
+
+if st.session_state.edit_id is not None:
+  if st.button("❌ Cancel Edit", use_container_width=True):
+    st.session_state.edit_id = None
+    st.session_state.form_version += 1
+    st.rerun()
+
 st.divider()
 
 # ==================== 2. 筛选与历史表格区域 ====================
@@ -297,7 +347,7 @@ if filtered_records:
 
   st.divider()
 
-  # ==================== 4. 修改与删除管理操作（放在Note下方、Save按钮上方） ====================
+  # ==================== 4. 修改与删除管理操作（历史表格区域下方） ====================
   st.subheader("⚙️ Manage Selected Date Records")
   record_options = {
       f"ID {r['id']} | {r['terminal']} | Total: {r['total']}": r["id"]
@@ -327,55 +377,3 @@ if filtered_records:
         st.rerun()
 else:
   st.info(f"No records found for date: {filter_date_str}")
-
-st.divider()
-
-# ==================== 5. 底部 Save / Update 按钮 ====================
-submitted = st.button(
-    "💾 Save / Update Record", type="primary", use_container_width=True
-)
-
-if submitted:
-  total = pay_dollar + unpaid + cash + epay
-  date_str = date_val.strftime("%Y-%m-%d")
-
-  if st.session_state.edit_id is None:
-    new_record = {
-        "id": len(records) + 1,
-        "date": date_str,
-        "terminal": terminal_val,
-        "pay_dollar": pay_dollar,
-        "pay_q": pay_q,
-        "unpaid": unpaid,
-        "cash": cash,
-        "epay": epay,
-        "total": total,
-        "note": note.strip() or "No Record",
-    }
-    records.append(new_record)
-    st.success("Record saved successfully to Google Sheets!")
-  else:
-    for r in records:
-      if r["id"] == st.session_state.edit_id:
-        r["date"] = date_str
-        r["terminal"] = terminal_val
-        r["pay_dollar"] = pay_dollar
-        r["pay_q"] = pay_q
-        r["unpaid"] = unpaid
-        r["cash"] = cash
-        r["epay"] = epay
-        r["total"] = total
-        r["note"] = note.strip() or "No Record"
-        break
-    st.success(f"Record ID {st.session_state.edit_id} updated successfully!")
-    st.session_state.edit_id = None
-
-  save_data(records)
-  st.session_state.form_version += 1
-  st.rerun()
-
-if st.session_state.edit_id is not None:
-  if st.button("❌ Cancel Edit", use_container_width=True):
-    st.session_state.edit_id = None
-    st.session_state.form_version += 1
-    st.rerun()
