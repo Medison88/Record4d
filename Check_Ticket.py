@@ -19,34 +19,18 @@ SPREADSHEET_ID = "1j9R36vCXpSNPuQ8UuQU_k5gZm9xRPcIJ7RbN1hQrLq4"
 @st.cache_resource
 def init_gspread():
   try:
-    if "gcp_service_account" in st.secrets:
-      creds_dict = dict(st.secrets["gcp_service_account"])
+    if "gcp_b64" in st.secrets:
+      json_str = base64.b64decode(st.secrets["gcp_b64"]).decode("utf-8")
+      creds_dict = json.loads(json_str)
 
-      if "private_key" in creds_dict:
-        pk = str(creds_dict["private_key"])
-        # 1. 彻底清除 Windows 换行符带来的污染
-        pk = pk.replace("\r\n", "\n").replace("\r", "\n")
-        # 2. 如果后台是用字面量写的 \n，将其转为真正的换行
-        if "\\n" in pk:
-          pk = pk.replace("\\n", "\n")
-        # 3. 去除首尾多余的空白
-        pk = pk.strip()
-        creds_dict["private_key"] = pk
+      with open("credentials.json", "w", encoding="utf-8") as f:
+        json.dump(creds_dict, f, ensure_ascii=False)
+
+      gc = gspread.service_account(filename="credentials.json")
+      return gc
     else:
-      st.error(
-          "ERROR: 未在 Streamlit Secrets 中找到 gcp_service_account 配置！"
-      )
+      st.error("ERROR: 未在 Streamlit Secrets 中找到 gcp_b64 配置！")
       return None
-
-    scopes = [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive",
-    ]
-    credentials = service_account.Credentials.from_service_account_info(
-        creds_dict, scopes=scopes
-    )
-    gc = gspread.authorize(credentials)
-    return gc
   except Exception as e:
     import traceback
 
