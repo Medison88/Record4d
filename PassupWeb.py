@@ -243,7 +243,7 @@ if filtered_records:
     term_summary_data.append({
         "Terminal": t,
         "Pay ($)": f"{t_dollar:.2f}",
-       "Pay (Q)": f"{t_q:.2f}",
+       #"Pay (Q)": f"{t_q:.2f}",
         "Unpaid": f"{t_unpaid:.2f}",
         "Cash": f"{t_cash:.2f}",
         "E-Pay": f"{t_epay:.2f}",
@@ -254,7 +254,7 @@ if filtered_records:
   term_summary_data.append({
       "Terminal": "Grand Total",
       "Pay ($)": f"{sum_dollar:.2f}",
-     # "Pay (Q)": f"{sum_q:.2f}",
+      "Pay (Q)": f"{sum_q:.2f}",
       "Unpaid": f"{sum_unpaid:.2f}",
       "Cash": f"{sum_cash:.2f}",
       "E-Pay": f"{sum_epay:.2f}",
