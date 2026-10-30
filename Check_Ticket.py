@@ -403,7 +403,7 @@ with tab_input:
 
 # ==================== TAB 2: Search 搜索窗口 ====================
 with tab_search:
-  st.subheader("🔍 Search & History Window")
+  st.subheader("🔍 Search & History Window (Percentage ≥ 50% 高亮红色)")
 
   col_s1, col_s2 = st.columns([2, 1])
   with col_s1:
@@ -448,9 +448,32 @@ with tab_search:
           "Prize": r.get("prize_type", "-"),
           "Score": r.get("score", 0),
           "Percentage": r.get("percentage", "0.00%"),
+          "Combine": r.get("combine", ""),
       })
 
     df = pd.DataFrame(table_data)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+
+
+    # 高亮函数：当 Percentage >= 50.0% 时整行自动高亮为醒目红色
+    def highlight_high_percentage(row):
+      try:
+        # 去除百分号并转为浮点数
+        pct_str = str(row["Percentage"]).replace("%", "").strip()
+        pct_val = float(pct_str) if pct_str else 0.0
+      except:
+        pct_val = 0.0
+
+      if pct_val >= 50.0:
+        return [
+            "color: #ff2b2b; font-weight: bold; background-color: rgba(255, 43, 43, 0.08)"
+            for _ in row
+        ]
+      return ["" for _ in row]
+
+
+    # 应用样式
+    styled_df = df.style.apply(highlight_high_percentage, axis=1)
+
+    st.dataframe(styled_df, use_container_width=True, hide_index=True)
   else:
     st.info("暂无匹配的记录。")
