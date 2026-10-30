@@ -236,7 +236,7 @@ if filtered_records:
     t_dollar = sum(r["pay_dollar"] for r in t_records)
     t_q = sum(r["pay_q"] for r in t_records)
     t_unpaid = sum(r["unpaid"] for r in t_records)
-    t_cash = sum(r["cash"] for r in t_records)
+    # t_cash = sum(r["cash"] for r in t_records)
     t_epay = sum(r["epay"] for r in t_records)
     t_total = sum(r["total"] for r in t_records)
 
