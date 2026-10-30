@@ -21,7 +21,15 @@ def init_gspread():
     if "gcp_service_account" in st.secrets:
       creds_dict = dict(st.secrets["gcp_service_account"])
       if "private_key" in creds_dict:
-        pk = str(creds_dict["private_key"])
+        pk = str(creds_dict["private_key"]).strip()
+
+        # 自动清洗：如果复制时不小心把首尾的引号带进去了，自动剥离
+        if pk.startswith('"') and pk.endswith('"'):
+          pk = pk[1:-1].strip()
+        if pk.startswith("'") and pk.endswith("'"):
+          pk = pk[1:-1].strip()
+
+        # 规范化换行符
         pk = pk.replace("\\n", "\n")
         creds_dict["private_key"] = pk
     else:
