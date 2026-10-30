@@ -17,33 +17,20 @@ SPREADSHEET_ID = "1j9R36vCXpSNPuQ8UuQU_k5gZm9xRPcIJ7RbN1hQrLq4"
 
 @st.cache_resource
 def init_gspread():
-  try:
-    if "gcp_b64" in st.secrets:
-      json_str = base64.b64decode(st.secrets["gcp_b64"]).decode("utf-8")
-      creds_dict = json.loads(json_str)
-
-      with open("credentials.json", "w", encoding="utf-8") as f:
-        json.dump(creds_dict, f, ensure_ascii=False)
-
-      gc = gspread.service_account(filename="credentials.json")
-      return gc
+  if "gcp_service_account" in st.secrets:
+    creds_json = st.secrets["gcp_service_account"]
+    if isinstance(creds_json, str):
+      creds_dict = json.loads(creds_json)
     else:
-      st.error("ERROR: 未在 Streamlit Secrets 中找到 gcp_b64 配置！")
-      return None
-  except Exception as e:
-    import traceback
+      creds_dict = dict(creds_json)
+    gc = gspread.service_account_from_dict(creds_dict)
+  else:
+    gc = gspread.service_account(filename="credentials.json")
+  return gc.open_by_key(SPREADSHEET_ID).sheet1
 
-    st.error(f"详细初始化错误: {type(e).__name__}: {e}")
-    st.code(traceback.format_exc())
-    st.stop()
-
-
-gc = init_gspread()
-if gc is None:
-  st.stop()
 
 try:
-  sheet_4d = gc.open_by_key(SPREADSHEET_ID).sheet1
+  sheet = init_gspread()
 except Exception as e:
   st.error(f"连接 Google Sheets 失败: {e}")
   st.stop()
