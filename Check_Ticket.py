@@ -240,4 +240,71 @@ filtered_records = records
 
 # 1. 综合关键词筛选
 if search_query.strip():
-  q = search_query.
+  q = search_query.strip()
+  filtered_records = [
+      r
+      for r in filtered_records
+      if q in str(r.get("combine", ""))
+      or q in str(r.get("number", ""))
+      or any(q in str(b) for b in r.get("bcn_list", []))
+      or q in str(r.get("serial", ""))
+      or q.lower() in str(r.get("prize_type", "")).lower()
+  ]
+
+# 2. 专用号码格子筛选
+if filter_num.strip():
+  fn = filter_num.strip()
+  filtered_records = [
+      r for r in filtered_records if fn in str(r.get("number", ""))
+  ]
+
+if filtered_records:
+  table_data = []
+  for r in filtered_records:
+    table_data.append({
+        "ID": r["id"],
+        "Date": r["date"],
+        "Draw": r["draw"],
+        "Number": r["number"],
+        "Prize": r.get("prize_type", "-"),
+        "Score": r.get("score", 0),
+        "Percentage": r.get("percentage", "0.00%"),
+    })
+
+  df = pd.DataFrame(table_data)
+  st.dataframe(df, use_container_width=True, hide_index=True)
+else:
+  st.info("暂无匹配的记录。")
+
+# ==================== 3. 管理区（支持修改与删除） ====================
+with st.expander("⚙️ Manage Records (Edit / Delete)"):
+  if records:
+    record_options = {
+        f"ID {r['id']} | Date: {r['date']} | Draw: {r['draw']} | Num: {r['number']} ({r.get('prize_type', '')})": (
+            r["id"]
+        )
+        for r in records
+    }
+    selected_option = st.selectbox(
+        "Select a record to Edit or Delete", options=list(record_options.keys())
+    )
+
+    if selected_option:
+      target_id = record_options[selected_option]
+      col_edit, col_del = st.columns(2)
+      with col_edit:
+        if st.button("✏️ Edit This Record"):
+          st.session_state.edit_id = target_id
+          st.rerun()
+      with col_del:
+        if st.button("🗑️ Delete This Record", type="primary"):
+          records = [r for r in records if r["id"] != target_id]
+          for idx, r in enumerate(records, start=1):
+            r["id"] = idx
+          save_data(records)
+          if st.session_state.edit_id == target_id:
+            st.session_state.edit_id = None
+          st.success("删除成功！")
+          st.rerun()
+  else:
+    st.write("暂无任何记录。")
