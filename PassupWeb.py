@@ -243,7 +243,7 @@ if filtered_records:
     term_summary_data.append({
         "Terminal": t,
         "Pay ($)": f"{t_dollar:.2f}",
-       #"Pay (Q)": f"{t_q:.2f}",
+       "Pay (Q)": f"{t_q:.2f}",
         "Unpaid": f"{t_unpaid:.2f}",
         "Cash": f"{t_cash:.2f}",
         "E-Pay": f"{t_epay:.2f}",
