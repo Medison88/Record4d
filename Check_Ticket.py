@@ -17,26 +17,54 @@ SPREADSHEET_ID = "1j9R36vCXpSNPuQ8UuQU_k5gZm9xRPcIJ7RbN1hQrLq4"
 
 @st.cache_resource
 def init_gspread():
-  if "gcp_service_account" in st.secrets:
-    creds_json = st.secrets["gcp_service_account"]
-    if isinstance(creds_json, str):
-      creds_dict = json.loads(creds_json)
+  try:
+    if "gcp_b64" in st.secrets:
+      json_str = base64.b64decode(st.secrets["gcp_b64"]).decode("utf-8")
+      creds_dict = json.loads(json_str)
+
+      # 替换私钥中的字面量 \n
+      if "private_key" in creds_dict:
+        creds_dict["private_key"] = creds_dict["private_key"].replace(
+            "\\n", "\n"
+        )
+
+      with open("credentials.json", "w", encoding="utf-8") as f:
+        json.dump(creds_dict, f, ensure_ascii=False)
+
+      gc = gspread.service_account(filename="credentials.json")
+      return gc.open_by_key(SPREADSHEET_ID).sheet1
+    elif "gcp_service_account" in st.secrets:
+      creds_json = st.secrets["gcp_service_account"]
+      creds_dict = (
+          json.loads(creds_json)
+          if isinstance(creds_json, str)
+          else dict(creds_json)
+      )
+      gc = gspread.service_account_from_dict(creds_dict)
+      return gc.open_by_key(SPREADSHEET_ID).sheet1
     else:
-      creds_dict = dict(creds_json)
-    gc = gspread.service_account_from_dict(creds_dict)
-  else:
-    gc = gspread.service_account(filename="credentials.json")
-  return gc.open_by_key(SPREADSHEET_ID).sheet1
+      gc = gspread.service_account(filename="credentials.json")
+      return gc.open_by_key(SPREADSHEET_ID).sheet1
+  except Exception as e:
+    st.error(f"初始化 Google Sheets 失败: {e}")
+    return None
 
 
-try:
-  sheet = init_gspread()
-except Exception as e:
-  st.error(f"连接 Google Sheets 失败: {e}")
+sheet = init_gspread()
+if sheet is None:
   st.stop()
 
 
-# ==================== 云端数据读写函数（适配无表头表格） ====================
+# ==================== 辅助函数：将 BCN 列表转为纯数字无符号文本 ====================
+def get_bcn_string(r):
+  """将 bcn_list 转为纯文本（空格分隔，不带方括号和引号）"""
+  bcn_val = r.get("bcn_list", [""] * 9)
+  if isinstance(bcn_val, list):
+    return " ".join([str(b).strip() for b in bcn_val if str(b).strip()])
+  return str(bcn_val).strip()
+
+
+# ==================== 云端数据读写函数（兼容与处理无符号 BCN） ====================
 def load_data():
   try:
     rows = sheet.get_all_values()
@@ -44,17 +72,28 @@ def load_data():
     if not rows:
       return []
 
-    for r_idx, row in enumerate(rows):
+    for row in rows:
       if not row or not row[0]:
         continue
-      # 尝试解析第一列为 ID（判断是否为数据行）
       try:
         rid = int(row[0])
-        bcn_raw = row[5] if len(row) > 5 else "[]"
-        try:
-          bcn_list = json.loads(bcn_raw) if bcn_raw.startswith("[") else [""] * 9
-        except:
-          bcn_list = [""] * 9
+        bcn_raw = row[5] if len(row) > 5 else ""
+
+        # 智能解析：兼容旧的 JSON 格式及新的纯数字空格分隔格式
+        bcn_list = []
+        if bcn_raw.startswith("["):
+          try:
+            bcn_list = json.loads(bcn_raw)
+          except:
+            bcn_list = []
+        else:
+          # 按空格切分，剔除空白项
+          bcn_list = [b.strip() for b in bcn_raw.split() if b.strip()]
+
+        # 补齐至 9 个元素以便表单回填
+        while len(bcn_list) < 9:
+          bcn_list.append("")
+        bcn_list = bcn_list[:9]
 
         record = {
             "id": rid,
@@ -70,7 +109,7 @@ def load_data():
         }
         records.append(record)
       except ValueError:
-        # 跳过可能的表头行
+        # 跳过表头行
         continue
     return records
   except Exception as e:
@@ -78,7 +117,8 @@ def load_data():
     return []
 
 
-def save_data(records):
+def save_data_all(records):
+  """全量覆写（用于修改和删除）"""
   try:
     sheet.clear()
     headers = [
@@ -94,6 +134,7 @@ def save_data(records):
         "percentage",
     ]
     sheet.append_row(headers)
+    data_to_write = []
     for r in records:
       row = [
           r.get("id"),
@@ -101,16 +142,40 @@ def save_data(records):
           r.get("draw"),
           r.get("number"),
           r.get("prize_type", ""),
-          json.dumps(r.get("bcn_list", [""] * 9), ensure_ascii=False),
+          get_bcn_string(r),  # 无符号纯数字 BCN
           r.get("serial", ""),
           r.get("combine", ""),
           r.get("score", 0),
           r.get("percentage", "0.00%"),
       ]
-      sheet.append_row(row)
+      data_to_write.append(row)
+    if data_to_write:
+      sheet.append_rows(data_to_write)
     return True
   except Exception as e:
     st.error(f"保存到 Google Sheets 失败: {e}")
+    return False
+
+
+def append_single_record(r):
+  """增量追加单条记录（用于新增）"""
+  try:
+    row = [
+        r.get("id"),
+        r.get("date"),
+        r.get("draw"),
+        r.get("number"),
+        r.get("prize_type", ""),
+        get_bcn_string(r),  # 无符号纯数字 BCN
+        r.get("serial", ""),
+        r.get("combine", ""),
+        r.get("score", 0),
+        r.get("percentage", "0.00%"),
+    ]
+    sheet.append_row(row)
+    return True
+  except Exception as e:
+    st.error(f"追加写入 Google Sheets 失败: {e}")
     return False
 
 
@@ -118,23 +183,22 @@ records = load_data()
 
 st.title("🎟️ Ticket Purchase & 4D Analysis")
 
-# 初始化 Session State 用于控制编辑状态
+# 初始化 Session State 控制编辑状态
 if "edit_id" not in st.session_state:
   st.session_state.edit_id = None
 
-# 查找当前是否在编辑某条记录
 editing_record = None
 if st.session_state.edit_id is not None:
   editing_record = next(
       (r for r in records if r["id"] == st.session_state.edit_id), None
   )
 
-# 创建两个独立的 Tab 窗口
+# 选项卡界面
 tab_input, tab_search = st.tabs(
     ["📝 Ticket Input (录入窗口)", "🔍 Search & History (搜索窗口)"]
 )
 
-# ==================== TAB 1: 录入窗口（含保存、修改、删除管理） ====================
+# ==================== TAB 1: 录入窗口 ====================
 with tab_input:
   form_title = (
       f"✏️ Edit Record (ID: {st.session_state.edit_id})"
@@ -143,7 +207,6 @@ with tab_input:
   )
   st.subheader(form_title)
 
-  # 获取默认回填值
   def_date = (
       datetime.strptime(editing_record["date"], "%d/%m/%Y").date()
       if editing_record and editing_record.get("date")
@@ -152,7 +215,6 @@ with tab_input:
   def_draw = editing_record["draw"] if editing_record else ""
   def_num = editing_record["number"] if editing_record else ""
 
-  # 奖项类型选项
   prize_options = ["First", "Second", "Third", "Special", "Consolation", " "]
   def_prize = (
       editing_record["prize_type"]
@@ -226,7 +288,6 @@ with tab_input:
       else:
         date_str = date_val.strftime("%d/%m/%Y")
 
-        # 1. 拼接 Combine 字符串 (参与计算与存储)
         draw_cleaned = draw_val.split("/")[0] if "/" in draw_val else draw_val
         bcn_combined = "".join(
             [bcn1, bcn2, bcn3, bcn4, bcn5, bcn6, bcn7, bcn8, bcn9]
@@ -236,7 +297,6 @@ with tab_input:
             f"{bcn_combined_clean}{serial_val.strip()}{draw_cleaned.strip()}"
         )
 
-        # 2. 自动计算得分与 Percentage
         total_len = len(combine_result)
         total_score = 0
 
@@ -271,8 +331,13 @@ with tab_input:
               "score": total_score,
               "percentage": f"{percentage:.2f}%",
           }
-          records.append(new_record)
-          msg = f"云端保存成功！得分: {total_score} | Percentage: {percentage:.2f}%"
+          if append_single_record(new_record):
+            records.append(new_record)
+            st.success(
+                f"云端保存成功！得分: {total_score} | Percentage:"
+                f" {percentage:.2f}%"
+            )
+            st.rerun()
         else:
           # 更新记录
           for r in records:
@@ -297,12 +362,10 @@ with tab_input:
               r["score"] = total_score
               r["percentage"] = f"{percentage:.2f}%"
               break
-          msg = f"记录 ID {st.session_state.edit_id} 云端更新成功！"
-          st.session_state.edit_id = None
-
-        save_data(records)
-        st.success(msg)
-        st.rerun()
+          if save_data_all(records):
+            st.session_state.edit_id = None
+            st.success(f"记录 ID {st.session_state.edit_id} 云端更新成功！")
+            st.rerun()
 
   if st.session_state.edit_id is not None:
     if st.button("❌ Cancel Edit"):
@@ -311,7 +374,7 @@ with tab_input:
 
   st.divider()
 
-  # 管理区（放在录入窗口下方）
+  # 管理区
   st.subheader("⚙️ Manage Records (Edit / Delete)")
   if records:
     record_options = {
@@ -336,11 +399,11 @@ with tab_input:
           records = [r for r in records if r["id"] != target_id]
           for idx, r in enumerate(records, start=1):
             r["id"] = idx
-          save_data(records)
-          if st.session_state.edit_id == target_id:
-            st.session_state.edit_id = None
-          st.success("云端删除成功！")
-          st.rerun()
+          if save_data_all(records):
+            if st.session_state.edit_id == target_id:
+              st.session_state.edit_id = None
+            st.success("云端删除成功！")
+            st.rerun()
   else:
     st.write("暂无任何记录可供管理。")
 
