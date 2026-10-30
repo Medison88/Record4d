@@ -16,18 +16,43 @@ SPREADSHEET_ID = "1j9R36vCXpSNPuQ8UuQU_k5gZm9xRPcIJ7RbN1hQrLq4"
 
 @st.cache_resource
 def init_gspread():
-  if "gcp_service_account" in st.secrets:
-    creds_dict = dict(st.secrets["gcp_service_account"])
-    if "private_key" in creds_dict:
-      pk = str(creds_dict["private_key"])
-      # 如果含有字面量的 \n，将其规范化转为真实换行
-      if "\\n" in pk:
+  try:
+    # 检查 secrets 里的键名是否存在
+    st.write("DEBUG - Available secrets keys:", list(st.secrets.keys()))
+
+    if "gcp_service_account_json" in st.secrets:
+      st.write("DEBUG - Using gcp_service_account_json")
+      creds_str = st.secrets["gcp_service_account_json"]
+      creds_dict = json.loads(creds_str)
+    elif "gcp_service_account" in st.secrets:
+      st.write("DEBUG - Using gcp_service_account")
+      creds_dict = dict(st.secrets["gcp_service_account"])
+      if "private_key" in creds_dict:
+        pk = str(creds_dict["private_key"])
         pk = pk.replace("\\n", "\n")
-      creds_dict["private_key"] = pk
-    gc = gspread.service_account_from_dict(creds_dict)
-  else:
-    gc = gspread.service_account(filename="credentials.json")
-  return gc
+        creds_dict["private_key"] = pk
+    else:
+      st.error("ERROR: No GCP service account secrets found in Streamlit!")
+      return None
+
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+    ]
+    credentials = service_account.Credentials.from_service_account_info(
+        creds_dict, scopes=scopes
+    )
+    gc = gspread.authorize(credentials)
+    return gc
+  except Exception as e:
+    import traceback
+
+    st.error(f"详细初始化错误: {type(e).__name__}: {e}")
+    st.code(traceback.format_exc())
+    st.stop()
+
+
+gc = init_gspread()
 
 gc = init_gspread()
 try:
