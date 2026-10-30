@@ -33,113 +33,106 @@ records = load_data()
 
 st.title("🎟️ Ticket Purchase & Red Word Calculator")
 
-# ==================== 1. 统一的输入表单区 ====================
-with st.form("ticket_form", clear_on_submit=False):
+# ==================== 1. 统一的输入表单区（无默认值） ====================
+with st.form("ticket_form", clear_on_submit=True):
   st.subheader("Ticket Purchase & Red Word Analysis")
 
   col1, col2 = st.columns(2)
   with col1:
-    date_val = st.date_input("Date", value=datetime.now().date())
+    date_val = st.date_input("Date", value=None)
   with col2:
-    draw_val = st.text_input("Draw", value="442/26")
+    draw_val = st.text_input("Draw", value="", placeholder="例如: 442/26")
 
-  number_val = st.text_input("Number (4 digits)", value="7338")
+  number_val = st.text_input("Number (4 digits)", value="", placeholder="例如: 7338")
 
-  # 长红字串输入（用于计算 Percentage）
-  default_red_word = "12926006917075326404162678098141823965621793166283"
+  # 长红字串输入框（无默认值）
   red_word_input = st.text_area(
       "当期的长红字串 (Red Word / Password String):",
-      value=default_red_word,
-      height=70,
+      value="",
+      height=80,
+      placeholder="请在此处粘贴当期长红字串...",
   )
 
   st.markdown("**BCN Numbers (Multi-groups):**")
   bcn_col1, bcn_col2, bcn_col3, bcn_col4, bcn_col5 = st.columns(5)
   with bcn_col1:
-    bcn1 = st.text_input("BCN 1", value="23335")
+    bcn1 = st.text_input("BCN 1", value="")
   with bcn_col2:
-    bcn2 = st.text_input("BCN 2", value="12926")
+    bcn2 = st.text_input("BCN 2", value="")
   with bcn_col3:
-    bcn3 = st.text_input("BCN 3", value="00691")
+    bcn3 = st.text_input("BCN 3", value="")
   with bcn_col4:
-    bcn4 = st.text_input("BCN 4", value="70753")
+    bcn4 = st.text_input("BCN 4", value="")
   with bcn_col5:
-    bcn5 = st.text_input("BCN 5", value="26404")
+    bcn5 = st.text_input("BCN 5", value="")
 
   bcn_col6, bcn_col7, bcn_col8, bcn_col9 = st.columns(4)
   with bcn_col6:
-    bcn6 = st.text_input("BCN 6", value="16267")
+    bcn6 = st.text_input("BCN 6", value="")
   with bcn_col7:
-    bcn7 = st.text_input("BCN 7", value="80981")
+    bcn7 = st.text_input("BCN 7", value="")
   with bcn_col8:
-    bcn8 = st.text_input("BCN 8", value="41823")
+    bcn8 = st.text_input("BCN 8", value="")
   with bcn_col9:
-    bcn9 = st.text_input("BCN 9", value="96562")
+    bcn9 = st.text_input("BCN 9", value="")
 
-  serial_val = st.text_input("Serial", value="1793166283")
-
-  # --- 自动计算逻辑 ---
-  # 1. 计算 Combine
-  draw_cleaned = draw_val.split("/")[0] if "/" in draw_val else draw_val
-  bcn_combined = "".join(
-      [bcn1, bcn2, bcn3, bcn4, bcn5, bcn6, bcn7, bcn8, bcn9]
-  )
-  bcn_combined_clean = "".join(bcn_combined.split())
-  combine_result = (
-      f"{bcn_combined_clean}{serial_val.strip()}{draw_cleaned.strip()}"
-  )
-
-  # 2. 实时计算红字得分与 Percentage
-  clean_red = "".join(red_word_input.split())
-  total_len = len(clean_red)
-  total_score = 0
-  digit_breakdown = []
-  for digit in number_val:
-    if digit.isdigit():
-      count = clean_red.count(digit)
-      total_score += count
-      digit_breakdown.append(f"数字 [{digit}] 出现 {count} 次 (得 {count} 分)")
-
-  percentage = (total_score / total_len * 100) if total_len > 0 else 0.0
-
-  # 界面实时预览计算结果
-  st.markdown("---")
-  st.markdown(f"**🔗 Combine Result Preview:** `{combine_result}`")
-  st.markdown(
-      f"**📊 Calculation Result:** 总字数: `{total_len}` | 号码总得分: `{total_score}` |"
-      f" 中奖占比 (Percentage): **`{percentage:.2f}%`**"
-  )
-  st.markdown("---")
+  serial_val = st.text_input("Serial", value="", placeholder="输入流水号...")
 
   submitted = st.form_submit_button("📥 Save Record")
 
   if submitted:
-    date_str = date_val.strftime("%d/%m/%Y")
-    new_record = {
-        "id": len(records) + 1,
-        "date": date_str,
-        "draw": draw_val,
-        "number": number_val,
-        "bcn_list": [
-            bcn1,
-            bcn2,
-            bcn3,
-            bcn4,
-            bcn5,
-            bcn6,
-            bcn7,
-            bcn8,
-            bcn9,
-        ],
-        "serial": serial_val,
-        "combine": combine_result,
-        "total_score": total_score,
-        "percentage": f"{percentage:.2f}%",
-    }
-    records.append(new_record)
-    save_data(records)
-    st.success("Record saved successfully!")
-    st.rerun()
+    if not date_val:
+      st.error("请选择日期！")
+    else:
+      date_str = date_val.strftime("%d/%m/%Y")
+
+      # 动态计算 Combine
+      draw_cleaned = draw_val.split("/")[0] if "/" in draw_val else draw_val
+      bcn_combined = "".join(
+          [bcn1, bcn2, bcn3, bcn4, bcn5, bcn6, bcn7, bcn8, bcn9]
+      )
+      bcn_combined_clean = "".join(bcn_combined.split())
+      combine_result = (
+          f"{bcn_combined_clean}{serial_val.strip()}{draw_cleaned.strip()}"
+      )
+
+      # 动态计算红字得分与 Percentage
+      clean_red = "".join(red_word_input.split())
+      total_len = len(clean_red)
+      total_score = 0
+      for digit in number_val:
+        if digit.isdigit():
+          total_score += clean_red.count(digit)
+
+      percentage = (total_score / total_len * 100) if total_len > 0 else 0.0
+
+      new_record = {
+          "id": len(records) + 1,
+          "date": date_str,
+          "draw": draw_val,
+          "number": number_val,
+          "bcn_list": [
+              bcn1,
+              bcn2,
+              bcn3,
+              bcn4,
+              bcn5,
+              bcn6,
+              bcn7,
+              bcn8,
+              bcn9,
+          ],
+          "serial": serial_val,
+          "combine": combine_result,
+          "total_score": total_score,
+          "percentage": f"{percentage:.2f}%",
+      }
+      records.append(new_record)
+      save_data(records)
+      st.success(
+          f"保存成功！总得分: {total_score} | 中奖占比: {percentage:.2f}%"
+      )
+      st.rerun()
 
 st.divider()
 
@@ -148,7 +141,8 @@ st.subheader("🔍 Search Records")
 
 search_query = st.text_input(
     "Search by Number, BCN or Combine string",
-    placeholder="Enter number to filter...",
+    value="",
+    placeholder="输入号码或关键词进行搜索...",
 )
 
 filtered_records = records
@@ -179,7 +173,7 @@ if filtered_records:
   df = pd.DataFrame(table_data)
   st.dataframe(df, use_container_width=True, hide_index=True)
 else:
-  st.info("No matching records found.")
+  st.info("暂无匹配的记录。")
 
 # 管理/删除记录
 with st.expander("⚙️ Manage Records (Delete)"):
@@ -199,7 +193,7 @@ with st.expander("⚙️ Manage Records (Delete)"):
       for idx, r in enumerate(records, start=1):
         r["id"] = idx
       save_data(records)
-      st.success("Deleted successfully!")
+      st.success("删除成功！")
       st.rerun()
   else:
-    st.write("No records available.")
+    st.write("暂无任何记录。")
