@@ -453,11 +453,8 @@ with tab_search:
 
     df = pd.DataFrame(table_data)
 
-
-    # 高亮函数：当 Percentage >= 50.0% 时整行自动高亮为醒目红色
     def highlight_high_percentage(row):
       try:
-        # 去除百分号并转为浮点数
         pct_str = str(row["Percentage"]).replace("%", "").strip()
         pct_val = float(pct_str) if pct_str else 0.0
       except:
@@ -470,10 +467,26 @@ with tab_search:
         ]
       return ["" for _ in row]
 
-
-    # 应用样式
     styled_df = df.style.apply(highlight_high_percentage, axis=1)
 
-    st.dataframe(styled_df, use_container_width=True, hide_index=True)
-  else:
-    st.info("暂无匹配的记录。")
+    # 针对各列设置自适应宽度与对齐方式
+    column_config = {
+        "ID": st.column_config.NumberColumn("ID", width="small"),
+        "Date": st.column_config.TextColumn("Date", width="medium"),
+        "Draw": st.column_config.TextColumn("Draw", width="small"),
+        "Number": st.column_config.TextColumn("Number", width="small"),
+        "Prize": st.column_config.TextColumn("Prize", width="small"),
+        "Score": st.column_config.NumberColumn("Score", width="small"),
+        "Percentage": st.column_config.TextColumn("Percentage", width="small"),
+        "Combine": st.column_config.TextColumn(
+            "Combine (Full String)", width="large"
+        ),
+    }
+
+    # 渲染自适应配置的表格
+    st.dataframe(
+        styled_df,
+        use_container_width=True,
+        hide_index=True,
+        column_config=column_config,
+    )
