@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import os
+from google.oauth2 import service_account
 import gspread
 import pandas as pd
 import streamlit as st
@@ -17,22 +18,14 @@ SPREADSHEET_ID = "1j9R36vCXpSNPuQ8UuQU_k5gZm9xRPcIJ7RbN1hQrLq4"
 @st.cache_resource
 def init_gspread():
   try:
-    # 检查 secrets 里的键名是否存在
-    st.write("DEBUG - Available secrets keys:", list(st.secrets.keys()))
-
-    if "gcp_service_account_json" in st.secrets:
-      st.write("DEBUG - Using gcp_service_account_json")
-      creds_str = st.secrets["gcp_service_account_json"]
-      creds_dict = json.loads(creds_str)
-    elif "gcp_service_account" in st.secrets:
-      st.write("DEBUG - Using gcp_service_account")
+    if "gcp_service_account" in st.secrets:
       creds_dict = dict(st.secrets["gcp_service_account"])
       if "private_key" in creds_dict:
         pk = str(creds_dict["private_key"])
         pk = pk.replace("\\n", "\n")
         creds_dict["private_key"] = pk
     else:
-      st.error("ERROR: No GCP service account secrets found in Streamlit!")
+      st.error("ERROR: 未找到 gcp_service_account 密文配置！")
       return None
 
     scopes = [
@@ -51,8 +44,6 @@ def init_gspread():
     st.code(traceback.format_exc())
     st.stop()
 
-
-gc = init_gspread()
 
 gc = init_gspread()
 try:
@@ -366,43 +357,4 @@ with tab_search:
     )
   with col_s2:
     filter_num = st.text_input(
-        "Filter Number", value="", placeholder="输入4位数号码筛选..."
-    )
-
-  filtered_records = records
-
-  if search_query.strip():
-    q = search_query.strip()
-    filtered_records = [
-        r
-        for r in filtered_records
-        if q in str(r.get("combine", ""))
-        or q in str(r.get("number", ""))
-        or any(q in str(b) for b in r.get("bcn_list", []))
-        or q in str(r.get("serial", ""))
-        or q.lower() in str(r.get("prize_type", "")).lower()
-    ]
-
-  if filter_num.strip():
-    fn = filter_num.strip()
-    filtered_records = [
-        r for r in filtered_records if fn in str(r.get("number", ""))
-    ]
-
-  if filtered_records:
-    table_data = []
-    for r in filtered_records:
-      table_data.append({
-          "ID": r["id"],
-          "Date": r["date"],
-          "Draw": r["draw"],
-          "Number": r["number"],
-          "Prize": r.get("prize_type", "-"),
-          "Score": r.get("score", 0),
-          "Percentage": r.get("percentage", "0.00%"),
-      })
-
-    df = pd.DataFrame(table_data)
-    st.dataframe(df, use_container_width=True, hide_index=True)
-  else:
-    st.info("暂无匹配的记录。")
+        "Filter Number",
