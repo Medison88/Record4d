@@ -1,32 +1,102 @@
 from datetime import datetime
 import json
 import os
+import gspread
 import pandas as pd
 import streamlit as st
-
-DATA_FILE = "ticket_records.json"
 
 # 页面配置
 st.set_page_config(
     page_title="Ticket Purchase & 4D Analysis", page_icon="🎟️", layout="centered"
 )
 
+# ==================== Google Sheets 云端数据库配置 ====================
+SPREADSHEET_ID = "1j9R36vCXpSNPuQ8UuQU_k5gZm9xRPcIJ7RbN1hQrLq4"
 
-# 加载数据
+
+@st.cache_resource
+def init_gspread():
+  if "gcp_service_account" in st.secrets:
+    creds_json = st.secrets["gcp_service_account"]
+    creds_dict = (
+        json.loads(creds_json)
+        if isinstance(creds_json, str)
+        else dict(creds_json)
+    )
+    gc = gspread.service_account_from_dict(creds_dict)
+  else:
+    gc = gspread.service_account(filename="credentials.json")
+  return gc
+
+
+gc = init_gspread()
+try:
+  sheet_4d = gc.open_by_key(SPREADSHEET_ID).sheet1
+except Exception as e:
+  st.error(f"连接 Google Sheets 失败: {e}")
+  st.stop()
+
+
+# ==================== 云端数据读写函数 ====================
 def load_data():
-  if os.path.exists(DATA_FILE):
-    try:
-      with open(DATA_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
-    except json.JSONDecodeError:
-      return []
-  return []
+  try:
+    records = sheet_4d.get_all_records()
+    for r in records:
+      r["id"] = int(r.get("id", 0)) if r.get("id") else 0
+      r["draw"] = str(r.get("draw", ""))
+      r["number"] = str(r.get("number", ""))
+      r["score"] = int(r.get("score", 0)) if r.get("score") else 0
+      # 解析可能存在的 JSON 格式 BCN 列表
+      bcn_raw = r.get("bcn_list", '["","","","","","","","",""]')
+      if isinstance(bcn_raw, str) and bcn_raw.startswith("["):
+        try:
+          r["bcn_list"] = json.loads(bcn_raw)
+        except:
+          r["bcn_list"] = [""] * 9
+      elif isinstance(bcn_raw, list):
+        r["bcn_list"] = bcn_raw
+      else:
+        r["bcn_list"] = [""] * 9
+    return records
+  except Exception as e:
+    st.error(f"读取 Google Sheets 数据失败: {e}")
+    return []
 
 
-# 保存数据
 def save_data(records):
-  with open(DATA_FILE, "w", encoding="utf-8") as f:
-    json.dump(records, f, ensure_ascii=False, indent=4)
+  try:
+    sheet_4d.clear()
+    headers = [
+        "id",
+        "date",
+        "draw",
+        "number",
+        "prize_type",
+        "bcn_list",
+        "serial",
+        "combine",
+        "score",
+        "percentage",
+    ]
+    sheet_4d.append_row(headers)
+    for r in records:
+      row = [
+          r.get("id"),
+          r.get("date"),
+          r.get("draw"),
+          r.get("number"),
+          r.get("prize_type", ""),
+          json.dumps(r.get("bcn_list", [""] * 9), ensure_ascii=False),
+          r.get("serial", ""),
+          r.get("combine", ""),
+          r.get("score", 0),
+          r.get("percentage", "0.00%"),
+      ]
+      sheet_4d.append_row(row)
+    return True
+  except Exception as e:
+    st.error(f"保存到 Google Sheets 失败: {e}")
+    return False
 
 
 records = load_data()
@@ -104,43 +174,25 @@ with tab_input:
     st.markdown("**BCN Numbers (Multi-groups):**")
     bcn_col1, bcn_col2, bcn_col3, bcn_col4, bcn_col5 = st.columns(5)
     with bcn_col1:
-      bcn1 = st.text_input(
-          "BCN 1", value=def_bcns[0] if len(def_bcns) > 0 else ""
-      )
+      bcn1 = st.text_input("BCN 1", value=def_bcns[0] if len(def_bcns) > 0 else "")
     with bcn_col2:
-      bcn2 = st.text_input(
-          "BCN 2", value=def_bcns[1] if len(def_bcns) > 1 else ""
-      )
+      bcn2 = st.text_input("BCN 2", value=def_bcns[1] if len(def_bcns) > 1 else "")
     with bcn_col3:
-      bcn3 = st.text_input(
-          "BCN 3", value=def_bcns[2] if len(def_bcns) > 2 else ""
-      )
+      bcn3 = st.text_input("BCN 3", value=def_bcns[2] if len(def_bcns) > 2 else "")
     with bcn_col4:
-      bcn4 = st.text_input(
-          "BCN 4", value=def_bcns[3] if len(def_bcns) > 3 else ""
-      )
+      bcn4 = st.text_input("BCN 4", value=def_bcns[3] if len(def_bcns) > 3 else "")
     with bcn_col5:
-      bcn5 = st.text_input(
-          "BCN 5", value=def_bcns[4] if len(def_bcns) > 4 else ""
-      )
+      bcn5 = st.text_input("BCN 5", value=def_bcns[4] if len(def_bcns) > 4 else "")
 
     bcn_col6, bcn_col7, bcn_col8, bcn_col9 = st.columns(4)
     with bcn_col6:
-      bcn6 = st.text_input(
-          "BCN 6", value=def_bcns[5] if len(def_bcns) > 5 else ""
-      )
+      bcn6 = st.text_input("BCN 6", value=def_bcns[5] if len(def_bcns) > 5 else "")
     with bcn_col7:
-      bcn7 = st.text_input(
-          "BCN 7", value=def_bcns[6] if len(def_bcns) > 6 else ""
-      )
+      bcn7 = st.text_input("BCN 7", value=def_bcns[6] if len(def_bcns) > 6 else "")
     with bcn_col8:
-      bcn8 = st.text_input(
-          "BCN 8", value=def_bcns[7] if len(def_bcns) > 7 else ""
-      )
+      bcn8 = st.text_input("BCN 8", value=def_bcns[7] if len(def_bcns) > 7 else "")
     with bcn_col9:
-      bcn9 = st.text_input(
-          "BCN 9", value=def_bcns[8] if len(def_bcns) > 8 else ""
-      )
+      bcn9 = st.text_input("BCN 9", value=def_bcns[8] if len(def_bcns) > 8 else "")
 
     serial_val = st.text_input(
         "Serial", value=def_serial, placeholder="输入 Serial 流水号..."
@@ -205,7 +257,7 @@ with tab_input:
               "percentage": f"{percentage:.2f}%",
           }
           records.append(new_record)
-          msg = f"记录保存成功！得分: {total_score} | Percentage: {percentage:.2f}%"
+          msg = f"云端保存成功！得分: {total_score} | Percentage: {percentage:.2f}%"
         else:
           # 更新记录
           for r in records:
@@ -230,7 +282,7 @@ with tab_input:
               r["score"] = total_score
               r["percentage"] = f"{percentage:.2f}%"
               break
-          msg = f"记录 ID {st.session_state.edit_id} 更新成功！"
+          msg = f"记录 ID {st.session_state.edit_id} 云端更新成功！"
           st.session_state.edit_id = None
 
         save_data(records)
@@ -272,7 +324,7 @@ with tab_input:
           save_data(records)
           if st.session_state.edit_id == target_id:
             st.session_state.edit_id = None
-          st.success("删除成功！")
+          st.success("云端删除成功！")
           st.rerun()
   else:
     st.write("暂无任何记录可供管理。")
