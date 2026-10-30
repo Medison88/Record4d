@@ -93,7 +93,6 @@ st.title("📊 Daily Passup Record")
 if "edit_id" not in st.session_state:
   st.session_state.edit_id = None
 
-# 引入一个表单渲染版本号控制（用于在保存后强制刷新组件 key 从而清空格子）
 if "form_version" not in st.session_state:
   st.session_state.form_version = 0
 
@@ -111,7 +110,6 @@ form_title = (
 )
 st.subheader(form_title)
 
-# 动态后缀，当保存成功时让 version + 1，强制所有输入框重新创建并清空
 v = st.session_state.form_version
 
 col1, col2 = st.columns(2)
@@ -221,8 +219,6 @@ if submitted:
     st.session_state.edit_id = None
 
   save_data(records)
-
-  # 关键：通过让 form_version 自增，使下一次渲染时所有输入框生成全新的 key，从而完美清空格子！
   st.session_state.form_version += 1
   st.rerun()
 
@@ -234,7 +230,7 @@ if st.session_state.edit_id is not None:
 
 st.divider()
 
-# ==================== 2. 历史与筛选区域 ====================
+# ==================== 2. 筛选与历史表格区域 ====================
 st.subheader("📋 Records History & Summary")
 
 filter_date = st.date_input(
@@ -261,6 +257,7 @@ if filtered_records:
   df = df[[c for c in display_cols if c in df.columns]]
   st.dataframe(df, use_container_width=True, hide_index=True)
 
+  # 计算总计
   sum_dollar = sum(r["pay_dollar"] for r in filtered_records)
   sum_q = sum(r["pay_q"] for r in filtered_records)
   sum_unpaid = sum(r["unpaid"] for r in filtered_records)
@@ -268,23 +265,87 @@ if filtered_records:
   sum_epay = sum(r["epay"] for r in filtered_records)
   sum_total = sum(r["total"] for r in filtered_records)
 
+  # 3. 顶部总计栏 (Summary)
   st.markdown("### 📊 Daily Summary (Overall)")
   sc1, sc2, sc3, sc4, sc5, sc6 = st.columns(6)
   with sc1:
-    st.markdown(f"**Pay ($)**<br>{sum_dollar:.2f}", unsafe_allow_html=True)
+    st.markdown(
+        f"<p style='margin:0;font-size:12px;color:gray;'>Pay"
+        f" ($)</p><p style='margin:0;font-size:16px;font-weight:bold;'>{sum_dollar:.2f}</p>",
+        unsafe_allow_html=True,
+    )
   with sc2:
-    st.markdown(f"**Pay (Q)**<br>{sum_q:.2f}", unsafe_allow_html=True)
+    st.markdown(
+        f"<p style='margin:0;font-size:12px;color:gray;'>Pay"
+        f" (Q)</p><p style='margin:0;font-size:16px;font-weight:bold;'>{sum_q:.2f}</p>",
+        unsafe_allow_html=True,
+    )
   with sc3:
-    st.markdown(f"**Unpaid**<br>{sum_unpaid:.2f}", unsafe_allow_html=True)
+    st.markdown(
+        f"<p style='margin:0;font-size:12px;color:gray;'>Unpaid</p><p"
+        f" style='margin:0;font-size:16px;font-weight:bold;'>{sum_unpaid:.2f}</p>",
+        unsafe_allow_html=True,
+    )
   with sc4:
-    st.markdown(f"**Cash**<br>{sum_cash:.2f}", unsafe_allow_html=True)
+    st.markdown(
+        f"<p style='margin:0;font-size:12px;color:gray;'>Cash</p><p"
+        f" style='margin:0;font-size:16px;font-weight:bold;'>{sum_cash:.2f}</p>",
+        unsafe_allow_html=True,
+    )
   with sc5:
-    st.markdown(f"**E-Pay**<br>{sum_epay:.2f}", unsafe_allow_html=True)
+    st.markdown(
+        f"<p style='margin:0;font-size:12px;color:gray;'>E-Pay</p><p"
+        f" style='margin:0;font-size:16px;font-weight:bold;'>{sum_epay:.2f}</p>",
+        unsafe_allow_html=True,
+    )
   with sc6:
-    st.markdown(f"**Total**<br>{sum_total:.2f}", unsafe_allow_html=True)
+    st.markdown(
+        f"<p style='margin:0;font-size:12px;color:gray;'>Total</p><p"
+        f" style='margin:0;font-size:16px;font-weight:bold;color:#007aff;'>{sum_total:.2f}</p>",
+        unsafe_allow_html=True,
+    )
+
+  # 3.1 终端明细表格 + Grand Total (Breakdown by Terminal)
+  st.markdown("### 🏷️ Breakdown by Terminal & Grand Total")
+  terminals_list = ["Terminal 1", "Terminal 2", "Terminal 3", "Terminal 4"]
+  term_summary_data = []
+
+  for t in terminals_list:
+    t_records = [r for r in filtered_records if r.get("terminal") == t]
+    t_dollar = sum(r["pay_dollar"] for r in t_records)
+    t_q = sum(r["pay_q"] for r in t_records)
+    t_unpaid = sum(r["unpaid"] for r in t_records)
+    t_cash = sum(r["cash"] for r in t_records)
+    t_epay = sum(r["epay"] for r in t_records)
+    t_total = sum(r["total"] for r in t_records)
+
+    term_summary_data.append({
+        "Terminal": t,
+        "Pay ($)": f"{t_dollar:.2f}",
+        "Pay (Q)": f"{t_q:.2f}",
+        "Unpaid": f"{t_unpaid:.2f}",
+        "Cash": f"{t_cash:.2f}",
+        "E-Pay": f"{t_epay:.2f}",
+        "Total": f"{t_total:.2f}",
+    })
+
+  # 追加 Grand Total 行
+  term_summary_data.append({
+      "Terminal": "Grand Total",
+      "Pay ($)": f"{sum_dollar:.2f}",
+      "Pay (Q)": f"{sum_q:.2f}",
+      "Unpaid": f"{sum_unpaid:.2f}",
+      "Cash": f"{sum_cash:.2f}",
+      "E-Pay": f"{sum_epay:.2f}",
+      "Total": f"{sum_total:.2f}",
+  })
+
+  df_term_summary = pd.DataFrame(term_summary_data)
+  st.dataframe(df_term_summary, use_container_width=True, hide_index=True)
 
   st.divider()
 
+  # 4. 修改与删除管理操作
   st.subheader("⚙️ Manage Selected Date Records")
   record_options = {
       f"ID {r['id']} | {r['terminal']} | Total: {r['total']}": r["id"]
