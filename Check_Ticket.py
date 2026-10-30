@@ -39,7 +39,7 @@ except Exception as e:
 # ==================== 云端数据读写函数（适配无表头表格） ====================
 def load_data():
   try:
-    rows = sheet_4d.get_all_values()
+    rows = sheet.get_all_values()
     records = []
     if not rows:
       return []
