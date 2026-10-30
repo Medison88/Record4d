@@ -44,7 +44,7 @@ if st.session_state.edit_id is not None:
       (r for r in records if r["id"] == st.session_state.edit_id), None
   )
 
-# ==================== 1. 输入表单区（保留 Serial） ====================
+# ==================== 1. 输入表单区（修复了 Serial 回填） ====================
 form_title = (
     f"✏️ Edit Record (ID: {st.session_state.edit_id})"
     if editing_record
@@ -103,6 +103,7 @@ with st.form("ticket_form", clear_on_submit=False):
   with bcn_col9:
     bcn9 = st.text_input("BCN 9", value=def_bcns[8] if len(def_bcns) > 8 else "")
 
+  # 修复点：这里加上了 value=def_serial 确保编辑时正确回填
   serial_val = st.text_input(
       "Serial", value=def_serial, placeholder="输入 Serial 流水号..."
   )
@@ -203,7 +204,7 @@ if st.session_state.edit_id is not None:
 
 st.divider()
 
-# ==================== 2. Search 搜索与历史表格区（隐藏 Serial 列） ====================
+# ==================== 2. Search 搜索与历史表格区（隐藏 Serial） ====================
 st.subheader("🔍 Search & History")
 
 search_query = st.text_input(
@@ -234,7 +235,6 @@ if filtered_records:
         "Number": r["number"],
         "Score": r.get("score", 0),
         "Percentage": r.get("percentage", "0.00%"),
-        # 表格中已隐藏 Serial 列
     })
 
   df = pd.DataFrame(table_data)
@@ -265,7 +265,6 @@ with st.expander("⚙️ Manage Records (Edit / Delete)"):
       with col_del:
         if st.button("🗑️ Delete This Record", type="primary"):
           records = [r for r in records if r["id"] != target_id]
-          # 重新编号
           for idx, r in enumerate(records, start=1):
             r["id"] = idx
           save_data(records)
