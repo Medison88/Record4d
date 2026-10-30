@@ -55,20 +55,30 @@ if sheet is None:
   st.stop()
 
 
-# ==================== 辅助函数：将 BCN 列表转为纯数字无符号文本 ====================
-
-
+# ==================== 辅助函数：将 BCN 列表转为完全紧凑的纯数字长字符串（无空格、无符号） ====================
 def get_bcn_string(r):
-  """将 bcn_list 转为完全连续的纯数字长字符串（无空格、无符号）"""
   bcn_val = r.get("bcn_list", [""] * 9)
   if isinstance(bcn_val, list):
-    # 用空字符串 join，把所有数字紧密拼在一起
     return "".join([str(b).strip() for b in bcn_val if str(b).strip()])
   return str(bcn_val).strip()
 
 
-# ==================== 云端数据读写函数（兼容与处理无符号 BCN） ====================
-# 智能解析：兼容旧格式或无符号连续长字符串格式
+# ==================== 云端数据读写函数 ====================
+def load_data():
+  try:
+    rows = sheet.get_all_values()
+    records = []
+    if not rows:
+      return []
+
+    for row in rows:
+      if not row or not row[0]:
+        continue
+      try:
+        rid = int(row[0])
+        bcn_raw = row[5] if len(row) > 5 else ""
+
+        # 智能解析：兼容旧格式或无符号连续长字符串格式，并每 5 位切分恢复列表
         bcn_list = []
         if bcn_raw.startswith("["):
           try:
@@ -76,7 +86,6 @@ def get_bcn_string(r):
           except:
             bcn_list = []
         else:
-          # 如果是连在一起的长字符串，每 5 位切成一组（BCN 每组 5 位）
           bcn_raw_clean = "".join(bcn_raw.split())
           bcn_list = [
               bcn_raw_clean[i : i + 5]
@@ -102,7 +111,6 @@ def get_bcn_string(r):
         }
         records.append(record)
       except ValueError:
-        # 跳过表头行
         continue
     return records
   except Exception as e:
@@ -111,7 +119,6 @@ def get_bcn_string(r):
 
 
 def save_data_all(records):
-  """全量覆写（用于修改和删除）"""
   try:
     sheet.clear()
     headers = [
@@ -135,7 +142,7 @@ def save_data_all(records):
           r.get("draw"),
           r.get("number"),
           r.get("prize_type", ""),
-          get_bcn_string(r),  # 无符号纯数字 BCN
+          get_bcn_string(r),  # 完全紧凑无空格、无符号
           r.get("serial", ""),
           r.get("combine", ""),
           r.get("score", 0),
@@ -151,7 +158,6 @@ def save_data_all(records):
 
 
 def append_single_record(r):
-  """增量追加单条记录（用于新增）"""
   try:
     row = [
         r.get("id"),
@@ -159,7 +165,7 @@ def append_single_record(r):
         r.get("draw"),
         r.get("number"),
         r.get("prize_type", ""),
-        get_bcn_string(r),  # 无符号纯数字 BCN
+        get_bcn_string(r),  # 完全紧凑无空格、无符号
         r.get("serial", ""),
         r.get("combine", ""),
         r.get("score", 0),
@@ -176,7 +182,6 @@ records = load_data()
 
 st.title("🎟️ Ticket Purchase & 4D Analysis")
 
-# 初始化 Session State 控制编辑状态
 if "edit_id" not in st.session_state:
   st.session_state.edit_id = None
 
@@ -186,7 +191,6 @@ if st.session_state.edit_id is not None:
       (r for r in records if r["id"] == st.session_state.edit_id), None
   )
 
-# 选项卡界面
 tab_input, tab_search = st.tabs(
     ["📝 Ticket Input (录入窗口)", "🔍 Search & History (搜索窗口)"]
 )
@@ -301,7 +305,6 @@ with tab_input:
         percentage = (total_score / total_len * 100) if total_len > 0 else 0.0
 
         if st.session_state.edit_id is None:
-          # 新增记录
           new_record = {
               "id": len(records) + 1,
               "date": date_str,
@@ -332,7 +335,6 @@ with tab_input:
             )
             st.rerun()
         else:
-          # 更新记录
           for r in records:
             if r["id"] == st.session_state.edit_id:
               r["date"] = date_str
@@ -367,7 +369,6 @@ with tab_input:
 
   st.divider()
 
-  # 管理区
   st.subheader("⚙️ Manage Records (Edit / Delete)")
   if records:
     record_options = {
