@@ -234,16 +234,16 @@ if filtered_records:
   for t in terminals_list:
     t_records = [r for r in filtered_records if r.get("terminal") == t]
     t_dollar = sum(r["pay_dollar"] for r in t_records)
-    t_q = sum(r["pay_q"] for r in t_records)
+    #t_q = sum(r["pay_q"] for r in t_records)
     t_unpaid = sum(r["unpaid"] for r in t_records)
-    # t_cash = sum(r["cash"] for r in t_records)
+    t_cash = sum(r["cash"] for r in t_records)
     t_epay = sum(r["epay"] for r in t_records)
     t_total = sum(r["total"] for r in t_records)
 
     term_summary_data.append({
         "Terminal": t,
         "Pay ($)": f"{t_dollar:.2f}",
-        "Pay (Q)": f"{t_q:.2f}",
+     #   "Pay (Q)": f"{t_q:.2f}",
         "Unpaid": f"{t_unpaid:.2f}",
         "Cash": f"{t_cash:.2f}",
         "E-Pay": f"{t_epay:.2f}",
