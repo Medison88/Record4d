@@ -108,6 +108,7 @@ def load_data():
             "combine": row[7] if len(row) > 7 else "",
             "score": int(row[8]) if len(row) > 8 and str(row[8]).isdigit() else 0,
             "percentage": row[9] if len(row) > 9 else "0.00%",
+            "source_location": row[10] if len(row) > 10 else "S2",  # 新增类别字段解析
         }
         records.append(record)
       except ValueError:
@@ -132,6 +133,7 @@ def save_data_all(records):
         "combine",
         "score",
         "percentage",
+        "source_location",
     ]
     sheet.append_row(headers)
     data_to_write = []
@@ -147,6 +149,7 @@ def save_data_all(records):
           r.get("combine", ""),
           r.get("score", 0),
           r.get("percentage", "0.00%"),
+          r.get("source_location", "S2"),
       ]
       data_to_write.append(row)
     if data_to_write:
@@ -170,6 +173,7 @@ def append_single_record(r):
         r.get("combine", ""),
         r.get("score", 0),
         r.get("percentage", "0.00%"),
+        r.get("source_location", "S2"),
     ]
     sheet.append_row(row)
     return True
@@ -219,6 +223,14 @@ with tab_input:
       else prize_options[0]
   )
 
+  # 新增 Dropdown 选项
+  location_options = ["S2", "Oakland"]
+  def_location = (
+      editing_record["source_location"]
+      if editing_record and editing_record.get("source_location") in location_options
+      else location_options[0]
+  )
+
   def_bcns = (
       editing_record["bcn_list"]
       if editing_record and "bcn_list" in editing_record
@@ -235,15 +247,24 @@ with tab_input:
           "Draw", value=def_draw, placeholder="例如: 442/26 或 442"
       )
 
-    number_val = st.text_input(
-        "Number (4 digits)", value=def_num, placeholder="例如: 7338"
-    )
-
-    prize_type = st.selectbox(
-        "Prize Type",
-        options=prize_options,
-        index=prize_options.index(def_prize),
-    )
+    col3, col4, col5 = st.columns(3)
+    with col3:
+      number_val = st.text_input(
+          "Number (4 digits)", value=def_num, placeholder="例如: 7338"
+      )
+    with col4:
+      prize_type = st.selectbox(
+          "Prize Type",
+          options=prize_options,
+          index=prize_options.index(def_prize),
+      )
+    with col5:
+      # Dropdown box: S2 / Oakland
+      source_location = st.selectbox(
+          "Location / Tag",
+          options=location_options,
+          index=location_options.index(def_location),
+      )
 
     st.markdown("**BCN Numbers (Multi-groups):**")
     bcn_col1, bcn_col2, bcn_col3, bcn_col4, bcn_col5 = st.columns(5)
@@ -326,12 +347,13 @@ with tab_input:
               "combine": combine_result,
               "score": total_score,
               "percentage": f"{percentage:.2f}%",
+              "source_location": source_location,
           }
           if append_single_record(new_record):
             records.append(new_record)
             st.success(
                 f"云端保存成功！得分: {total_score} | Percentage:"
-                f" {percentage:.2f}%"
+                f" {percentage:.2f}% | Tag: {source_location}"
             )
             st.rerun()
         else:
@@ -356,6 +378,7 @@ with tab_input:
               r["combine"] = combine_result
               r["score"] = total_score
               r["percentage"] = f"{percentage:.2f}%"
+              r["source_location"] = source_location
               break
           if save_data_all(records):
             st.session_state.edit_id = None
@@ -372,7 +395,7 @@ with tab_input:
   st.subheader("⚙️ Manage Records (Edit / Delete)")
   if records:
     record_options = {
-        f"ID {r['id']} | Date: {r['date']} | Draw: {r['draw']} | Num: {r['number']} ({r.get('prize_type', '')})": (
+        f"ID {r['id']} | Date: {r['date']} | Tag: {r.get('source_location', 'S2')} | Draw: {r['draw']} | Num: {r['number']} ({r.get('prize_type', '')})": (
             r["id"]
         )
         for r in records
@@ -405,7 +428,7 @@ with tab_input:
 with tab_search:
   st.subheader("🔍 Search & History Window (Percentage ≥ 50% 高亮红色)")
 
-  col_s1, col_s2 = st.columns([2, 1])
+  col_s1, col_s2, col_s3 = st.columns([2, 1, 1])
   with col_s1:
     search_query = st.text_input(
         "Search keyword (Combine / BCN / Serial)",
@@ -415,6 +438,10 @@ with tab_search:
   with col_s2:
     filter_num = st.text_input(
         "Filter Number", value="", placeholder="输入4位数号码筛选..."
+    )
+  with col_s3:
+    filter_location = st.selectbox(
+        "Filter Tag", options=["All", "S2", "Oakland"]
     )
 
   filtered_records = records
@@ -429,6 +456,7 @@ with tab_search:
         or any(q in str(b) for b in r.get("bcn_list", []))
         or q in str(r.get("serial", ""))
         or q.lower() in str(r.get("prize_type", "")).lower()
+        or q.lower() in str(r.get("source_location", "")).lower()
     ]
 
   if filter_num.strip():
@@ -437,12 +465,20 @@ with tab_search:
         r for r in filtered_records if fn in str(r.get("number", ""))
     ]
 
+  if filter_location != "All":
+    filtered_records = [
+        r
+        for r in filtered_records
+        if r.get("source_location", "S2") == filter_location
+    ]
+
   if filtered_records:
     table_data = []
     for r in filtered_records:
       table_data.append({
           "ID": r["id"],
           "Date": r["date"],
+          "Tag": r.get("source_location", "S2"),
           "Draw": r["draw"],
           "Number": r["number"],
           "Prize": r.get("prize_type", "-"),
@@ -469,10 +505,10 @@ with tab_search:
 
     styled_df = df.style.apply(highlight_high_percentage, axis=1)
 
-    # 针对各列设置自适应宽度与对齐方式
     column_config = {
         "ID": st.column_config.NumberColumn("ID", width="small"),
         "Date": st.column_config.TextColumn("Date", width="medium"),
+        "Tag": st.column_config.TextColumn("Tag", width="small"),
         "Draw": st.column_config.TextColumn("Draw", width="small"),
         "Number": st.column_config.TextColumn("Number", width="small"),
         "Prize": st.column_config.TextColumn("Prize", width="small"),
@@ -483,10 +519,11 @@ with tab_search:
         ),
     }
 
-    # 渲染自适应配置的表格
     st.dataframe(
         styled_df,
         use_container_width=True,
         hide_index=True,
         column_config=column_config,
     )
+  else:
+    st.info("暂无匹配的记录。")
