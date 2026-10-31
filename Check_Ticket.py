@@ -109,6 +109,7 @@ def load_data():
             "score": int(row[8]) if len(row) > 8 and str(row[8]).isdigit() else 0,
             "percentage": row[9] if len(row) > 9 else "0.00%",
             "source_location": row[10] if len(row) > 10 else "S2",  # 新增类别字段解析
+            "permutation": row[11] if len(row) > 11 else "",
         }
         records.append(record)
       except ValueError:
@@ -134,6 +135,7 @@ def save_data_all(records):
         "score",
         "percentage",
         "source_location",
+        "Permutation"
     ]
     sheet.append_row(headers)
     data_to_write = []
@@ -150,6 +152,7 @@ def save_data_all(records):
           r.get("score", 0),
           r.get("percentage", "0.00%"),
           r.get("source_location", "S2"),
+          r.get("Permutation",""),
       ]
       data_to_write.append(row)
     if data_to_write:
@@ -174,6 +177,7 @@ def append_single_record(r):
         r.get("score", 0),
         r.get("percentage", "0.00%"),
         r.get("source_location", "S2"),
+        r.get("Permutation",""),
     ]
     sheet.append_row(row)
     return True
@@ -237,6 +241,10 @@ with tab_input:
       else [""] * 9
   )
   def_serial = editing_record.get("serial", "") if editing_record else ""
+    def_permutation = (
+    editing_record.get("permutation", "")
+    if editing_record else ""
+)
 
   with st.form("ticket_purchase_form", clear_on_submit=False):
     col1, col2 = st.columns(2)
@@ -292,7 +300,11 @@ with tab_input:
     serial_val = st.text_input(
         "Serial", value=def_serial, placeholder="输入 Serial 流水号..."
     )
-
+    permutation_val = st.text_input(
+      "Permutation",
+    value=def_permutation,
+      placeholder="输入 Permutation..."
+)
     btn_label = (
         "🔄 Update Record"
         if st.session_state.edit_id is not None
@@ -348,6 +360,7 @@ with tab_input:
               "score": total_score,
               "percentage": f"{percentage:.2f}%",
               "source_location": source_location,
+              "permutation": permutation_val,
           }
           if append_single_record(new_record):
             records.append(new_record)
@@ -379,6 +392,7 @@ with tab_input:
               r["score"] = total_score
               r["percentage"] = f"{percentage:.2f}%"
               r["source_location"] = source_location
+              r["permutation"] = permutation_val
               break
           if save_data_all(records):
             st.session_state.edit_id = None
@@ -457,6 +471,7 @@ with tab_search:
         or q in str(r.get("serial", ""))
         or q.lower() in str(r.get("prize_type", "")).lower()
         or q.lower() in str(r.get("source_location", "")).lower()
+        or q.lower() in str(r.get("permutation", "")).lower()
     ]
 
   if filter_num.strip():
@@ -485,6 +500,7 @@ with tab_search:
           "Score": r.get("score", 0),
           "Percentage": r.get("percentage", "0.00%"),
           "Combine": r.get("combine", ""),
+          "Permutation": r.get("permutation", ""),
       })
 
     df = pd.DataFrame(table_data)
@@ -516,6 +532,9 @@ with tab_search:
         "Percentage": st.column_config.TextColumn("Percentage", width="small"),
         "Combine": st.column_config.TextColumn(
             "Combine (Full String)", width="large"
+        "Permutation": st.column_config.TextColumn(
+            "Permutation", width="medium"
+),
         ),
     }
 
