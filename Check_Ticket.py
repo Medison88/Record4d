@@ -533,9 +533,9 @@ with tab_search:
         "Percentage": st.column_config.TextColumn("Percentage", width="small"),
         "Combine": st.column_config.TextColumn(
             "Combine (Full String)", width="large"
+),
         "Permutation": st.column_config.TextColumn(
             "Permutation", width="medium"
-),
         ),
     }
 
