@@ -376,15 +376,15 @@ if filtered_records:
         "Total": f"{t_total:.2f}",
     })
 
-  term_summary_data.append({
-      "Terminal": "Grand Total",
-      "Pay ($)": f"{sum_dollar:.2f}",
-      "Pay (Q)": f"{sum_q:.2f}",
-      "Unpaid": f"{sum_unpaid:.2f}",
-      "Cancel": f"{sum_cancel:.2f}",
-      "E-Pay": f"{sum_epay:.2f}",
-      "Cancel": cancel,
-      "Total": f"{sum_total:.2f}",
+ term_summary_data.append({
+    "Terminal": "Grand Total",
+    "Pay ($)": f"{sum_dollar:.2f}",
+    "Pay (Q)": f"{sum_q:.2f}",
+    "Unpaid": f"{sum_unpaid:.2f}",
+    "Cash": f"{sum_cash:.2f}",
+    "E-Pay": f"{sum_epay:.2f}",
+    "Cancel": f"{sum_cancel:.2f}",
+    "Total": f"{sum_total:.2f}",
   })
 
   df_term_summary = pd.DataFrame(term_summary_data)
