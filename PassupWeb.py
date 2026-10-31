@@ -376,7 +376,7 @@ if filtered_records:
         "Total": f"{t_total:.2f}",
     })
 
- term_summary_data.append({
+    term_summary_data.append({
     "Terminal": "Grand Total",
     "Pay ($)": f"{sum_dollar:.2f}",
     "Pay (Q)": f"{sum_q:.2f}",
