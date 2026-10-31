@@ -34,21 +34,40 @@ except Exception as e:
 
 
 def load_data():
-  try:
-    records = sheet.get_all_records()
-    for r in records:
-      r["id"] = int(r.get("id", 0)) if r.get("id") else 0
-      r["pay_dollar"] = float(r.get("pay_dollar", 0.0))
-      r["pay_q"] = float(r.get("pay_q", 0.0))
-      r["unpaid"] = float(r.get("unpaid", 0.0))
-      r["cash"] = float(r.get("cash", 0.0))
-      r["epay"] = float(r.get("epay", 0.0))
-      r["total"] = float(r.get("total", 0.0))
-      r["cancel"] = float(r.get("cancel", 0.0))
-    return records
-  except Exception as e:
-    st.error(f"读取 Google Sheets 数据失败: {e}")
-    return []
+    try:
+        records = sheet.get_all_records()
+
+        def safe_float(value):
+            if value is None:
+                return 0.0
+
+            value = str(value).strip()
+
+            if value == "" or value.lower() in [
+                "no record", "none", "nan", "null"
+            ]:
+                return 0.0
+
+            try:
+                return float(value.replace(",", ""))
+            except (ValueError, TypeError):
+                return 0.0
+
+        for r in records:
+            r["id"] = int(safe_float(r.get("id", 0)))
+            r["pay_dollar"] = safe_float(r.get("pay_dollar"))
+            r["pay_q"] = safe_float(r.get("pay_q"))
+            r["unpaid"] = safe_float(r.get("unpaid"))
+            r["cash"] = safe_float(r.get("cash"))
+            r["epay"] = safe_float(r.get("epay"))
+            r["total"] = safe_float(r.get("total"))
+            r["cancel"] = safe_float(r.get("cancel"))
+
+        return records
+
+    except Exception as e:
+        st.error(f"读取 Google Sheets 数据失败: {e}")
+        return []
 
 
 def save_data(records):
