@@ -62,6 +62,22 @@ def get_bcn_string(r):
     return "".join([str(b).strip() for b in bcn_val if str(b).strip()])
   return str(bcn_val).strip()
 
+from math import factorial
+from collections import Counter
+
+def calculate_permutation(number):
+    digits = str(number).strip()
+
+    if len(digits) != 4 or not digits.isdigit():
+        return 0
+
+    result = factorial(4)
+
+    for count in Counter(digits).values():
+        result //= factorial(count)
+
+    return result
+
 
 # ==================== 云端数据读写函数 ====================
 def load_data():
@@ -260,6 +276,11 @@ with tab_input:
     with col3:
       number_val = st.text_input(
           "Number (4 digits)", value=def_num, placeholder="例如: 7338"
+    if number_val.strip():
+          permutation_count = calculate_permutation(number_val)
+
+    if permutation_count > 0:
+        st.info(f"Permutation Groups: {permutation_count}")
       )
     with col4:
       prize_type = st.selectbox(
