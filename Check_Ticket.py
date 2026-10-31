@@ -273,6 +273,7 @@ with tab_input:
           "Location / Tag",
           options=location_options,
           index=location_options.index(def_location),
+      )
       permutation_val = st.text_input(
           "Permutation",
           value=def_permutation,
