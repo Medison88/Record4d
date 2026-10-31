@@ -168,7 +168,7 @@ def save_data_all(records):
           r.get("score", 0),
           r.get("percentage", "0.00%"),
           r.get("source_location", "S2"),
-          r.get("Permutation",""),
+          r.get("permutation", 0),
       ]
       data_to_write.append(row)
     if data_to_write:
@@ -193,7 +193,7 @@ def append_single_record(r):
         r.get("score", 0),
         r.get("percentage", "0.00%"),
         r.get("source_location", "S2"),
-        r.get("Permutation",""),
+        r.get("permutation", 0),
     ]
     sheet.append_row(row)
     return True
@@ -390,7 +390,7 @@ with tab_input:
               "score": total_score,
               "percentage": f"{percentage:.2f}%",
               "source_location": source_location,
-              "permutation": permutation_val,
+              "permutation": calculate_permutation(number_val),
           }
           if append_single_record(new_record):
             records.append(new_record)
@@ -422,7 +422,7 @@ with tab_input:
               r["score"] = total_score
               r["percentage"] = f"{percentage:.2f}%"
               r["source_location"] = source_location
-              r["permutation"] = permutation_val
+              r["permutation"] = calculate_permutation(number_val)
               break
           if save_data_all(records):
             st.session_state.edit_id = None
