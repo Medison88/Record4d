@@ -276,7 +276,6 @@ with tab_input:
     with col3:
       number_val = st.text_input(
           "Number (4 digits)", value=def_num, placeholder="例如: 7338"
-    if number_val.strip():
           permutation_count = calculate_permutation(number_val)
 
     if permutation_count > 0:
