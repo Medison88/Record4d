@@ -243,7 +243,7 @@ if submitted:
         "cash": cash,
         "epay": epay,
         "total": total,
-        "cancel",
+        "cancel": cancel,
     }
     records.append(new_record)
     st.success("Record saved successfully to Google Sheets!")
