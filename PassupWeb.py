@@ -44,7 +44,7 @@ def load_data():
       r["cash"] = float(r.get("cash", 0.0))
       r["epay"] = float(r.get("epay", 0.0))
       r["total"] = float(r.get("total", 0.0))
-      r["Cancel"] = float(r.get("Cancel",0.0))
+      r["cancel"] = float(r.get("cancel", 0.0))
     return records
   except Exception as e:
     st.error(f"读取 Google Sheets 数据失败: {e}")
@@ -175,10 +175,12 @@ with col7:
       key=f"f_epay_{v}",
   )
 
-note = st.text_input(
+cancel = st.number_input(
     "Cancel",
-    value=editing_record["note"] if editing_record else "",
-    key=f"f_note_{v}",
+    value=float(editing_record["cancel"]) if editing_record else 0.0,
+    min_value=0.0,
+    format="%.2f",
+    key=f"f_cancel_{v}",
 )
 
 # ==================== 2. Manage Selected Records 区域 (紧跟在 Note 下方) ====================
@@ -361,7 +363,7 @@ if filtered_records:
     t_cash = sum(r["cash"] for r in t_records)
     t_epay = sum(r["epay"] for r in t_records)
     t_total = sum(r["total"] for r in t_records)
-    t_cancel = sum(r["cancel"] for r in t_cancel)
+    t_cancel = sum(r["cancel"] for r in t_records)
 
     term_summary_data.append({
         "Terminal": t,
@@ -379,9 +381,9 @@ if filtered_records:
       "Pay ($)": f"{sum_dollar:.2f}",
       "Pay (Q)": f"{sum_q:.2f}",
       "Unpaid": f"{sum_unpaid:.2f}",
-      "Cash": f"{sum_cash:.2f}",
+      "Cancel": f"{sum_cancel:.2f}",
       "E-Pay": f"{sum_epay:.2f}",
-      "Cancel": f"{sum_cancel:2.f}",
+      "Cancel": cancel,
       "Total": f"{sum_total:.2f}",
   })
 
