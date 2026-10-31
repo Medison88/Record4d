@@ -241,7 +241,7 @@ with tab_input:
       else [""] * 9
   )
   def_serial = editing_record.get("serial", "") if editing_record else ""
-    def_permutation = (
+def_permutation = (
     editing_record.get("permutation", "")
     if editing_record else ""
 )
