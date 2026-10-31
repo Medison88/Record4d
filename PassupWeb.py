@@ -44,6 +44,7 @@ def load_data():
       r["cash"] = float(r.get("cash", 0.0))
       r["epay"] = float(r.get("epay", 0.0))
       r["total"] = float(r.get("total", 0.0))
+      r["Cancel"] = float(r.get("Cancel",0.0))
     return records
   except Exception as e:
     st.error(f"读取 Google Sheets 数据失败: {e}")
@@ -63,7 +64,7 @@ def save_data(records):
         "cash",
         "epay",
         "total",
-        "note",
+        "cancel",
     ]
     sheet.append_row(headers)
     for r in records:
@@ -77,7 +78,7 @@ def save_data(records):
           r.get("cash"),
           r.get("epay"),
           r.get("total"),
-          r.get("note", "No Record"),
+          r.get("cancel"),
       ]
       sheet.append_row(row)
     return True
@@ -175,7 +176,7 @@ with col7:
   )
 
 note = st.text_input(
-    "Note",
+    "Cancel",
     value=editing_record["note"] if editing_record else "",
     key=f"f_note_{v}",
 )
@@ -242,7 +243,7 @@ if submitted:
         "cash": cash,
         "epay": epay,
         "total": total,
-        "note": note.strip() or "No Record",
+        "cancel",
     }
     records.append(new_record)
     st.success("Record saved successfully to Google Sheets!")
@@ -257,7 +258,7 @@ if submitted:
         r["cash"] = cash
         r["epay"] = epay
         r["total"] = total
-        r["note"] = note.strip() or "No Record"
+        r["cancel"] = cancel
         break
     st.success(f"Record ID {st.session_state.edit_id} updated successfully!")
     st.session_state.edit_id = None
@@ -296,7 +297,7 @@ if filtered_records:
       "cash",
       "epay",
       "total",
-      "note",
+      "cancel",
   ]
   df = df[[c for c in display_cols if c in df.columns]]
   st.dataframe(df, use_container_width=True, hide_index=True)
@@ -307,6 +308,7 @@ if filtered_records:
   sum_cash = sum(r["cash"] for r in filtered_records)
   sum_epay = sum(r["epay"] for r in filtered_records)
   sum_total = sum(r["total"] for r in filtered_records)
+  sum_cancel = sun(r["cancel"] for r in filtered_records)
 
   st.markdown("### 📊 Daily Summary (Overall)")
   sc1, sc2, sc3, sc4, sc5, sc6 = st.columns(6)
@@ -359,6 +361,7 @@ if filtered_records:
     t_cash = sum(r["cash"] for r in t_records)
     t_epay = sum(r["epay"] for r in t_records)
     t_total = sum(r["total"] for r in t_records)
+    t_cancel = sum(r["cancel"] for r in t_cancel)
 
     term_summary_data.append({
         "Terminal": t,
@@ -367,6 +370,7 @@ if filtered_records:
         "Unpaid": f"{t_unpaid:.2f}",
         "Cash": f"{t_cash:.2f}",
         "E-Pay": f"{t_epay:.2f}",
+        "Cancel": f"{t_cancel:.2f}",
         "Total": f"{t_total:.2f}",
     })
 
@@ -377,6 +381,7 @@ if filtered_records:
       "Unpaid": f"{sum_unpaid:.2f}",
       "Cash": f"{sum_cash:.2f}",
       "E-Pay": f"{sum_epay:.2f}",
+      "Cancel": f"{sum_cancel:2.f}",
       "Total": f"{sum_total:.2f}",
   })
 
