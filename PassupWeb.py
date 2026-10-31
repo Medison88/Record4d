@@ -308,7 +308,7 @@ if filtered_records:
   sum_cash = sum(r["cash"] for r in filtered_records)
   sum_epay = sum(r["epay"] for r in filtered_records)
   sum_total = sum(r["total"] for r in filtered_records)
-  sum_cancel = sun(r["cancel"] for r in filtered_records)
+  sum_cancel = sum(r["cancel"] for r in filtered_records)
 
   st.markdown("### 📊 Daily Summary (Overall)")
   sc1, sc2, sc3, sc4, sc5, sc6 = st.columns(6)
