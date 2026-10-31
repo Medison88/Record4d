@@ -307,7 +307,6 @@ with tab_input:
         "Serial", value=def_serial, placeholder="输入 Serial 流水号..."
     )
     
-)
     btn_label = (
         "🔄 Update Record"
         if st.session_state.edit_id is not None
