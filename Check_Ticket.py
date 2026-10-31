@@ -273,6 +273,10 @@ with tab_input:
           "Location / Tag",
           options=location_options,
           index=location_options.index(def_location),
+      permutation_val = st.text_input(
+          "Permutation",
+          value=def_permutation,
+          placeholder="输入 Permutation..."
       )
 
     st.markdown("**BCN Numbers (Multi-groups):**")
@@ -301,10 +305,7 @@ with tab_input:
     serial_val = st.text_input(
         "Serial", value=def_serial, placeholder="输入 Serial 流水号..."
     )
-    permutation_val = st.text_input(
-      "Permutation",
-    value=def_permutation,
-      placeholder="输入 Permutation..."
+    
 )
     btn_label = (
         "🔄 Update Record"
