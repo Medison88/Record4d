@@ -265,35 +265,43 @@ with tab_input:
 
   with st.form("ticket_purchase_form", clear_on_submit=False):
     col1, col2 = st.columns(2)
+
     with col1:
       date_val = st.date_input("Date", value=def_date)
+
     with col2:
       draw_val = st.text_input(
           "Draw", value=def_draw, placeholder="例如: 442/26 或 442"
       )
 
     col3, col4, col5 = st.columns(3)
+
     with col3:
       number_val = st.text_input(
-          "Number (4 digits)", value=def_num, placeholder="例如: 7338"
-          permutation_count = calculate_permutation(number_val)
-
-    if permutation_count > 0:
-        st.info(f"Permutation Groups: {permutation_count}")
+          "Number (4 digits)",
+          value=def_num,
+          placeholder="例如: 7338"
       )
+
+      permutation_count = calculate_permutation(number_val)
+
+      if permutation_count > 0:
+        st.info(f"Permutation Groups: {permutation_count}")
+
     with col4:
       prize_type = st.selectbox(
           "Prize Type",
           options=prize_options,
           index=prize_options.index(def_prize),
       )
+
     with col5:
-      # Dropdown box: S2 / Oakland
       source_location = st.selectbox(
           "Location / Tag",
           options=location_options,
           index=location_options.index(def_location),
       )
+
       permutation_val = st.text_input(
           "Permutation",
           value=def_permutation,
