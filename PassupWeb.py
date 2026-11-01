@@ -332,7 +332,7 @@ if filtered_records:
   sum_cancel = sum(r["cancel"] for r in filtered_records)
 
   st.markdown("### 📊 Daily Summary (Overall)")
-  sc1, sc2, sc3, sc4, sc5, sc6, sc7 = st.columns(6)
+  sc1, sc2, sc3, sc4, sc5, sc6, sc7 = st.columns(7)
   with sc1:
     st.markdown(
         f"<p style='margin:0;font-size:12px;color:gray;'>Pay"
