@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 
 # 页面配置
-st.set_page_config(page_title="Passup Record App", page_icon="📊", layout="centered")
+st.set_page_config(page_title="Passup Record App", page_icon="📊", layout="wide")
 
 # ==================== Google Sheets 云端数据库配置 ====================
 SPREADSHEET_ID = "16GTnxyRGxVD1aNRWBE3LyihraLlPbd7otGqRG_bv0is"
