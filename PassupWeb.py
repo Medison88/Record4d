@@ -367,7 +367,7 @@ if filtered_records:
     st.markdown(
         f"<p style='margin:0;font-size:12px;color:gray;'>Cancel</p><p"
         f" style='margin:0;font-size:16px;font-weight:bold;'>{sum_cancel:.2f}</p>",
-        unsafe_allow_htmal=True,
+        unsafe_allow_html=True,
     )
   with sc7:
     st.markdown(
