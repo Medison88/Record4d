@@ -1,4 +1,4 @@
-code = r'''from datetime import datetime
+from datetime import datetime
 import json
 import os
 import gspread
@@ -500,6 +500,5 @@ else:
         use_container_width=True,
         hide_index=True,
     )
-'''
 
 
