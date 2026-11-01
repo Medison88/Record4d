@@ -1,5 +1,3 @@
-from pathlib import Path
-
 code = r'''from datetime import datetime
 import json
 import os
@@ -504,7 +502,4 @@ else:
     )
 '''
 
-path = Path("/mnt/data/passup_record_app_updated.py")
-path.write_text(code, encoding="utf-8")
-compile(code, str(path), "exec")
-print(f"已生成并通过 Python 语法检查：{path}")
+
